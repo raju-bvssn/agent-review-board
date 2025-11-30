@@ -1,9 +1,12 @@
 """Session manager for handling session state and lifecycle."""
 
 import uuid
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from app.models.session_state import SessionState
 from app.utils.file_utils import create_session_temp_folder, cleanup_session_temp_folder
+
+if TYPE_CHECKING:
+    from app.orchestration.iteration_state import IterationState
 
 
 class SessionManager:
@@ -22,6 +25,7 @@ class SessionManager:
         self.current_session: Optional[SessionState] = None
         self.session_history: Dict[str, SessionState] = {}
         self.iteration_data: Dict[str, List[Dict[str, Any]]] = {}  # session_id -> list of iterations
+        self.iteration_states: Dict[str, List[Any]] = {}  # session_id -> list of IterationState objects
     
     def create_session(
         self,
@@ -262,4 +266,93 @@ class SessionManager:
             self.current_session.uploaded_files.append(file_path)
         
         return file_path
+    
+    def record_iteration(self, iteration_state: 'IterationState') -> None:
+        """Record an iteration state object.
+        
+        This is used by the WorkflowEngine to store complete iteration states
+        including presenter output, reviewer feedback, aggregation, and confidence.
+        
+        Args:
+            iteration_state: IterationState object to record
+            
+        Raises:
+            ValueError: If no active session
+        """
+        if self.current_session is None:
+            raise ValueError("No active session")
+        
+        session_id = self.current_session.session_id
+        
+        # Initialize iteration states list for this session if needed
+        if session_id not in self.iteration_states:
+            self.iteration_states[session_id] = []
+        
+        # Store iteration state
+        self.iteration_states[session_id].append(iteration_state)
+    
+    def get_last_iteration(self) -> Optional['IterationState']:
+        """Get the most recent iteration state.
+        
+        Returns:
+            Latest IterationState or None if no iterations exist
+        """
+        if self.current_session is None:
+            return None
+        
+        session_id = self.current_session.session_id
+        states = self.iteration_states.get(session_id, [])
+        
+        if states:
+            return states[-1]
+        
+        return None
+    
+    def get_iteration_count(self) -> int:
+        """Get total number of recorded iterations.
+        
+        Returns:
+            Number of iterations (0 if no active session)
+        """
+        if self.current_session is None:
+            return 0
+        
+        session_id = self.current_session.session_id
+        return len(self.iteration_states.get(session_id, []))
+    
+    def is_ready_for_finalization(self) -> bool:
+        """Check if session is ready for finalization.
+        
+        Ready when:
+        - At least one iteration completed
+        - Latest iteration approved
+        - Confidence meets threshold (0.82)
+        
+        Returns:
+            True if ready, False otherwise
+        """
+        if self.current_session is None:
+            return False
+        
+        last_iteration = self.get_last_iteration()
+        
+        if last_iteration is None:
+            return False
+        
+        return (
+            last_iteration.approved and
+            last_iteration.confidence >= 0.82
+        )
+    
+    def get_all_iteration_states(self) -> List['IterationState']:
+        """Get all iteration states for current session.
+        
+        Returns:
+            List of IterationState objects (empty list if none)
+        """
+        if self.current_session is None:
+            return []
+        
+        session_id = self.current_session.session_id
+        return self.iteration_states.get(session_id, []).copy()
 

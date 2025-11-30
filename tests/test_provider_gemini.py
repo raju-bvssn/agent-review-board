@@ -20,7 +20,7 @@ class TestGeminiProvider:
         provider = GeminiProvider(api_key="test-key")
         
         assert provider.api_key == "test-key"
-        assert provider.model == "gemini-1.5-flash"
+        assert provider.model == "gemini-2.5-flash"
         mock_client_class.assert_called_once()
     
     @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
@@ -54,9 +54,9 @@ class TestGeminiProvider:
         
         assert isinstance(models, list)
         assert len(models) > 0
-        assert 'gemini-1.5-flash' in models
-        assert 'gemini-1.5-pro' in models
-        assert 'gemini-pro' in models
+        assert 'gemini-2.5-flash' in models
+        assert 'gemini-2.5-pro' in models
+        assert 'gemini-2.0-flash' in models
     
     @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
     @patch('httpx.Client')
@@ -71,9 +71,9 @@ class TestGeminiProvider:
         models = provider.list_models()
         
         assert isinstance(models, list)
-        assert "gemini-1.5-flash" in models
-        assert "gemini-1.5-pro" in models
-        assert "gemini-pro" in models
+        assert "gemini-2.5-flash" in models
+        assert "gemini-2.5-pro" in models
+        assert "gemini-2.0-flash" in models
     
     @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
     @patch('httpx.Client')
@@ -298,12 +298,12 @@ class TestGeminiProvider:
         
         provider = GeminiProvider(
             api_key="test-key",
-            model="gemini-1.5-pro",
+            model="gemini-2.5-pro",
             temperature=0.5,
             max_tokens=1000
         )
         
-        assert provider.model == "gemini-1.5-pro"
+        assert provider.model == "gemini-2.5-pro"
         assert provider.temperature == 0.5
         assert provider.max_output_tokens == 1000
     
@@ -353,11 +353,11 @@ class TestGeminiProvider:
         mock_client_class.return_value = mock_client
         
         provider = GeminiProvider(api_key="test-key")
-        provider.generate_text("test", model="gemini-1.5-pro")
+        provider.generate_text("test", model="gemini-2.5-pro")
         
         # Check that debug message was printed
         captured = capsys.readouterr()
-        assert "[Gemini] Using model: gemini-1.5-pro" in captured.out
+        assert "[Gemini] Using model: gemini-2.5-pro" in captured.out
 
 
 if __name__ == "__main__":

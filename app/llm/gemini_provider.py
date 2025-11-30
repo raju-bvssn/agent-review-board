@@ -30,17 +30,18 @@ class GeminiProvider(BaseLLMProvider):
     # API Configuration
     API_BASE_URL = "https://generativelanguage.googleapis.com/v1"
     
-    # Free and low-cost models
-    DEFAULT_MODEL = "gemini-1.5-flash"  # FREE tier
+    # Free and low-cost models (Updated for Gemini 2.x API)
+    DEFAULT_MODEL = "gemini-2.5-flash"  # FREE tier
     DEFAULT_TIMEOUT = 30
     MAX_RETRIES = 3
     RETRY_DELAY = 1
     
     AVAILABLE_MODELS = [
-        "gemini-1.5-flash",      # FREE - Fast, good for most tasks
-        "gemini-1.5-flash-8b",   # FREE - Even faster, lighter
-        "gemini-1.5-pro",        # Paid - More capable
-        "gemini-pro",            # Standard model
+        "gemini-2.5-flash",       # FREE - Latest, fast, good for most tasks
+        "gemini-2.5-flash-lite",  # FREE - Even faster, lighter
+        "gemini-2.0-flash",       # FREE - Fast and reliable
+        "gemini-2.0-flash-lite",  # FREE - Lightweight option
+        "gemini-2.5-pro",         # Paid - Most capable
     ]
     
     def __init__(self, api_key: Optional[str] = None, **kwargs):
@@ -75,7 +76,8 @@ class GeminiProvider(BaseLLMProvider):
         self.timeout = kwargs.get('timeout', self.DEFAULT_TIMEOUT)
         self.max_retries = kwargs.get('max_retries', self.MAX_RETRIES)
         self.temperature = kwargs.get('temperature', 0.7)
-        self.max_output_tokens = kwargs.get('max_tokens', 2000)
+        # Gemini 2.5 uses ~1500 tokens for "thinking", so we need more total tokens
+        self.max_output_tokens = kwargs.get('max_tokens', 4000)
         
         # Initialize HTTP client
         self.client = httpx.Client(timeout=self.timeout)
@@ -98,7 +100,11 @@ class GeminiProvider(BaseLLMProvider):
         """
         model_name = kwargs.get('model', self.model)
         temperature = kwargs.get('temperature', self.temperature)
-        max_tokens = kwargs.get('max_tokens', self.max_output_tokens)
+        requested_tokens = kwargs.get('max_tokens', self.max_output_tokens)
+        
+        # Gemini 2.5 uses ~1500 tokens for "thinking", so enforce minimum
+        # to avoid MAX_TOKENS errors with no output
+        max_tokens = max(requested_tokens, 3000)
         
         # Debug logging
         print(f"[Gemini] Using model: {model_name}")
@@ -157,7 +163,27 @@ class GeminiProvider(BaseLLMProvider):
                 
                 # Extract text from response
                 try:
-                    text = response_data["candidates"][0]["content"]["parts"][0]["text"]
+                    content = response_data["candidates"][0]["content"]
+                    
+                    # Check if parts exist (might be missing if MAX_TOKENS hit)
+                    if "parts" not in content or not content["parts"]:
+                        finish_reason = response_data["candidates"][0].get("finishReason", "UNKNOWN")
+                        
+                        if finish_reason == "MAX_TOKENS":
+                            raise Exception(
+                                f"Gemini response truncated due to MAX_TOKENS limit. "
+                                f"The model used all tokens for thinking/processing. "
+                                f"Try increasing max_tokens (current request may have been too low). "
+                                f"Thinking tokens used: {response_data.get('usageMetadata', {}).get('thoughtsTokenCount', 'unknown')}"
+                            )
+                        else:
+                            raise Exception(
+                                f"Gemini response has no content parts. Finish reason: {finish_reason}. "
+                                f"Raw response: {json.dumps(response_data, indent=2)[:1000]}"
+                            )
+                    
+                    text = content["parts"][0]["text"]
+                    
                     if text:
                         return text
                     else:
@@ -224,9 +250,10 @@ class GeminiProvider(BaseLLMProvider):
             True if connection is valid, False otherwise
         """
         try:
-            # Try a simple generation with minimal tokens
-            test_prompt = "Hi"
-            result = self.generate_text(test_prompt, max_tokens=10)
+            # Try a simple generation with enough tokens for Gemini 2.5
+            # (Gemini 2.5 uses some tokens for "thoughts", so we need at least 50-100)
+            test_prompt = "Say hello"
+            result = self.generate_text(test_prompt, max_tokens=100)
             return len(result) > 0
         except Exception as e:
             print(f"[Gemini] Connection validation failed: {str(e)}")

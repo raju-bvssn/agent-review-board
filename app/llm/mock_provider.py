@@ -35,6 +35,24 @@ class MockLLMProvider(BaseLLMProvider):
         self.call_count += 1
         self.last_prompt = prompt
         
+        # Check if this is a confidence scoring prompt
+        if "SCORE:" in prompt and "REASONING:" in prompt:
+            # Return properly formatted confidence evaluation
+            scores = [85, 72, 90, 68, 75]
+            score_index = (self.call_count - 1) % len(scores)
+            score = scores[score_index]
+            
+            reasonings = [
+                "The content demonstrates strong technical understanding with minor areas for improvement.",
+                "Good overall quality with some moderate issues that should be addressed.",
+                "Excellent work that meets all requirements with only minor refinements needed.",
+                "Several concerns raised by reviewers that need attention before approval.",
+                "Solid implementation with balanced feedback from the review team."
+            ]
+            reasoning_index = (self.call_count - 1) % len(reasonings)
+            
+            return f"SCORE: {score}\nREASONING: {reasonings[reasoning_index]}"
+        
         # Return different responses based on call count for variety
         responses = [
             "This is a mock response from the LLM provider.",

@@ -241,14 +241,41 @@ def render():
     
     st.markdown("---")
     
-    # Iteration log section
-    with st.expander("📋 Iteration Log"):
-        history = orchestrator.get_iteration_history()
-        if history:
-            for result in history:
-                st.text(f"Iteration {result.iteration}: Score {result.confidence_result.get('score', 0):.0f}/100")
-        else:
-            st.text("No iterations yet")
+    # Display aggregated feedback if available
+    if hasattr(current_result, 'aggregated_feedback') and current_result.aggregated_feedback:
+        st.header("🎯 Panel 4: Board Decision (Aggregated Feedback)")
+        
+        with st.container():
+            st.markdown(current_result.aggregated_feedback)
+        
+        st.markdown("---")
+    
+    # Iteration Timeline
+    st.header("📅 Iteration Timeline")
+    
+    history = orchestrator.get_iteration_history()
+    if history and len(history) > 0:
+        for idx, result in enumerate(history, 1):
+            with st.expander(f"Iteration {idx} - Score: {result.confidence_result.get('score', 0):.0f}/100 {'✅' if result.human_gate_approved else '⏳'}"):
+                timeline_col1, timeline_col2 = st.columns([2, 1])
+                
+                with timeline_col1:
+                    st.subheader("Presenter Output")
+                    st.markdown(result.presenter_output[:500] + "..." if len(result.presenter_output) > 500 else result.presenter_output)
+                
+                with timeline_col2:
+                    st.subheader("Metadata")
+                    st.caption(f"Iteration: {result.iteration}")
+                    st.caption(f"Reviewers: {len(result.reviewer_feedback)}")
+                    st.caption(f"Confidence: {result.confidence_result.get('score', 0):.0f}/100")
+                    st.caption(f"Status: {'✅ Approved' if result.human_gate_approved else '⏳ Pending'}")
+                
+                # Show aggregated feedback if available
+                if hasattr(result, 'aggregated_feedback') and result.aggregated_feedback:
+                    st.subheader("Board Decision")
+                    st.markdown(result.aggregated_feedback)
+    else:
+        st.info("No iterations yet. Run your first iteration to see the timeline.")
     
     st.markdown("---")
     
@@ -279,39 +306,47 @@ def render():
             session_data = session_manager.get_session_data()
             
             if session_data:
-                # Generate Markdown report
-                markdown_report = generate_final_report(
-                    session_data,
-                    history,
-                    format="markdown"
-                )
+                try:
+                    # Generate Markdown report
+                    markdown_report = generate_final_report(
+                        session_data,
+                        history,
+                        format="markdown"
+                    )
+                    
+                    filename_md = f"review_report_{session_data['session_name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+                    
+                    st.download_button(
+                        label="📥 Download Markdown",
+                        data=markdown_report,
+                        file_name=filename_md,
+                        mime="text/markdown",
+                        use_container_width=True
+                    )
+                except Exception as e:
+                    st.error("⚠️ Unable to generate Markdown report. Please try again.")
+                    st.exception(e)  # Show developer details in expandable box
                 
-                filename_md = f"review_report_{session_data['session_name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-                
-                st.download_button(
-                    label="📥 Download Markdown",
-                    data=markdown_report,
-                    file_name=filename_md,
-                    mime="text/markdown",
-                    use_container_width=True
-                )
-                
-                # Generate JSON report
-                json_report = generate_final_report(
-                    session_data,
-                    history,
-                    format="json"
-                )
-                
-                filename_json = f"review_report_{session_data['session_name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                
-                st.download_button(
-                    label="📥 Download JSON",
-                    data=json_report,
-                    file_name=filename_json,
-                    mime="application/json",
-                    use_container_width=True
-                )
+                try:
+                    # Generate JSON report
+                    json_report = generate_final_report(
+                        session_data,
+                        history,
+                        format="json"
+                    )
+                    
+                    filename_json = f"review_report_{session_data['session_name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                    
+                    st.download_button(
+                        label="📥 Download JSON",
+                        data=json_report,
+                        file_name=filename_json,
+                        mime="application/json",
+                        use_container_width=True
+                    )
+                except Exception as e:
+                    st.error("⚠️ Unable to generate JSON report. Please try again.")
+                    st.exception(e)  # Show developer details in expandable box
     else:
         st.info("Run at least one iteration to generate reports")
 

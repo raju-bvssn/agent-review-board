@@ -368,7 +368,7 @@ class TestProviderCompatibility:
         models = provider.list_models()
         
         # Free model should be in the fallback list
-        assert "gemini-1.5-flash" in models
+        assert "gemini-2.5-flash" in models
     
     def test_huggingface_free_models_in_list(self):
         """Test that HuggingFace includes free models in list."""

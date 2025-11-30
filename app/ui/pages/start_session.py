@@ -206,6 +206,9 @@ def render():
                         content = uploaded_file.read()
                         session_manager.save_uploaded_file(uploaded_file.name, content)
                 
+                # Reset orchestrator for new session to ensure fresh iteration
+                st.session_state.orchestrator = None
+                
                 # Store session config for UI
                 st.session_state.session_config = {
                     'session_name': session_name,

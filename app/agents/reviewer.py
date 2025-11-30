@@ -13,7 +13,7 @@ class ReviewerAgent(BaseAgent):
     feedback (5-8 bullet points maximum).
     """
     
-    # Base review prompt template
+    # Base review prompt template (initial iteration)
     REVIEW_PROMPT_TEMPLATE = """You are a {role_description}.
 
 CONTENT TO REVIEW:
@@ -38,6 +38,44 @@ SUGGESTED IMPROVEMENTS:
 
 Be specific, actionable, and constructive. Focus on {focus_areas}."""
     
+    # Iterative review prompt template (for iterations after the first)
+    ITERATIVE_REVIEW_PROMPT_TEMPLATE = """You are a {role_description}.
+
+ITERATION {iteration}: REVIEWING UPDATED CONTENT
+
+PREVIOUS FEEDBACK (from iteration {previous_iteration}):
+{previous_feedback}
+
+UPDATED CONTENT TO REVIEW:
+{content}
+
+Your task is to:
+1. Check if the previous issues were addressed
+2. Identify any NEW issues introduced
+3. Recognize improvements made
+4. Provide updated feedback
+
+Provide your feedback in the following format:
+
+VERDICT: [Choose ONE: APPROVE / NEEDS REVISION / REJECT]
+
+IMPROVEMENT TRACKING:
+- ✅ FIXED: [List issues from previous iteration that were successfully addressed]
+- ⚠️ PARTIALLY FIXED: [List issues that were partially addressed but need more work]
+- ❌ NOT ADDRESSED: [List issues from previous iteration that still exist]
+
+NEW FINDINGS (issues not present in previous iteration):
+1. [Severity: CRITICAL/HIGH/MEDIUM/LOW] Finding description and specific issue
+2. [Severity: CRITICAL/HIGH/MEDIUM/LOW] Finding description and specific issue
+...
+
+SUGGESTED IMPROVEMENTS:
+- Specific improvement 1
+- Specific improvement 2
+...
+
+Be specific about what improved and what didn't. Focus on {focus_areas}."""
+    
     def __init__(self, llm_provider: BaseLLMProvider, role: str = "reviewer", **kwargs):
         """Initialize reviewer agent.
         
@@ -56,29 +94,52 @@ Be specific, actionable, and constructive. Focus on {focus_areas}."""
         self.temperature = kwargs.get('temperature', 0.5)
         self.max_tokens = kwargs.get('max_tokens', 1500)
     
-    def review(self, content: str, iteration: int) -> Feedback:
+    def review(self, content: str, iteration: int, previous_feedback: str = None) -> Feedback:
         """Review content and provide feedback.
         
         Args:
             content: Content to review (from presenter)
             iteration: Current iteration number
+            previous_feedback: Optional feedback from previous iteration for tracking improvements
             
         Returns:
             Feedback object with review points
         """
-        # Build prompt
-        prompt = self.REVIEW_PROMPT_TEMPLATE.format(
-            role_description=self.role_description,
-            content=content,
-            focus_areas=self.focus_areas
-        )
+        # Dynamic token scaling based on iteration
+        # Iteration 1: Standard tokens (1500)
+        # Iteration 2+: Increased tokens for improvement tracking (5000)
+        # This ensures reviewers can provide complete feedback even with:
+        # - Previous feedback context (adds ~1000 tokens to prompt)
+        # - Improvement tracking output (adds ~500 tokens to response)
+        # - Gemini's thinking tokens (~3000 tokens)
+        if previous_feedback and iteration > 1:
+            # Iterative review needs more tokens
+            max_tokens = max(self.max_tokens, 5000)
+            
+            prompt = self.ITERATIVE_REVIEW_PROMPT_TEMPLATE.format(
+                role_description=self.role_description,
+                iteration=iteration,
+                previous_iteration=iteration - 1,
+                previous_feedback=previous_feedback,
+                content=content,
+                focus_areas=self.focus_areas
+            )
+        else:
+            # Initial review uses standard token allocation
+            max_tokens = self.max_tokens
+            
+            prompt = self.REVIEW_PROMPT_TEMPLATE.format(
+                role_description=self.role_description,
+                content=content,
+                focus_areas=self.focus_areas
+            )
         
         # Generate review using LLM
         try:
             result = self.llm_provider.generate_text(
                 prompt,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens
+                max_tokens=max_tokens
             )
             
             # Parse the result

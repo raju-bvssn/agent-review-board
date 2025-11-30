@@ -26,7 +26,7 @@ if "initialized" not in st.session_state:
 
 from app.ui.pages import start_session, llm_settings, review_session
 from app.utils.rerun_guard import init_rerun_guards, safe_navigation_change, reset_rerun_guards
-from app.ui.theme.theme_manager import apply_liquid_glass_theme_once
+from app.ui.theme.theme_manager import get_theme_injection_html
 from app.utils.env import is_cloud
 
 
@@ -36,10 +36,9 @@ def main():
     ANTI-RECURSION: Initializes rerun guards to prevent infinite loops.
     """
     
-    # Apply Liquid Glass theme (CSS only - no logic changes)
-    theme_html = apply_liquid_glass_theme_once()
-    if theme_html:
-        st.markdown(theme_html, unsafe_allow_html=True)
+    # Apply Liquid Glass theme on EVERY rerun for consistent UI
+    # This prevents Streamlit's default styles from overriding on form interactions
+    st.markdown(get_theme_injection_html(), unsafe_allow_html=True)
     
     # Initialize rerun guards (CRITICAL: must be first)
     init_rerun_guards()

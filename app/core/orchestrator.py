@@ -202,6 +202,15 @@ class Orchestrator:
         """
         feedback_list = []
         
+        # Get previous feedback for iterative review
+        previous_feedback_by_role = {}
+        if len(self.iteration_history) > 0:
+            last_result = self.iteration_history[-1]
+            for feedback in last_result.reviewer_feedback:
+                # Convert feedback points to readable string
+                feedback_text = "\n".join([f"- {point}" for point in feedback.feedback_points])
+                previous_feedback_by_role[feedback.reviewer_role] = feedback_text
+        
         for role in selected_roles:
             try:
                 # Get reviewer class
@@ -210,8 +219,11 @@ class Orchestrator:
                 # Create reviewer instance
                 reviewer = reviewer_class(self.llm_provider)
                 
-                # Get feedback
-                feedback = reviewer.review(content, iteration)
+                # Get previous feedback for this role
+                previous_feedback = previous_feedback_by_role.get(role, None)
+                
+                # Get feedback (with previous context if available)
+                feedback = reviewer.review(content, iteration, previous_feedback=previous_feedback)
                 feedback_list.append(feedback)
             
             except Exception as e:

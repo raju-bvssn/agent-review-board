@@ -55,7 +55,7 @@ def render():
         "mock": "Mock Provider (Testing - No Setup Required)",
         "openai": "OpenAI (GPT-4, GPT-3.5) - Paid",
         "anthropic": "Anthropic (Claude 3.5 Sonnet) - Paid",
-        "gemini": "🆓 Google Gemini (gemini-1.5-flash FREE)",
+        "gemini": "🆓 Google Gemini (gemini-2.5-flash FREE)",
         "huggingface": "🆓 HuggingFace (falcon-7b FREE)",
         "ollama": "🆓 Ollama (Local - llama3, mistral, phi3, etc.)"
     }
@@ -388,7 +388,7 @@ def render():
                         
                         # Auto-select default free model
                         if selected_provider == 'gemini':
-                            default = 'gemini-1.5-flash'
+                            default = 'gemini-2.5-flash'
                             if default in models:
                                 st.session_state.llm_config['model'] = default
                         elif selected_provider == 'huggingface':

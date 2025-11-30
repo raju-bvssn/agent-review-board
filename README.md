@@ -49,7 +49,7 @@ The Agent Review Board supports multiple LLM providers, including **FREE options
 2. In the app, navigate to "LLM Settings"
 3. Select "Google Gemini"
 4. Enter your `GEMINI_API_KEY`
-5. Select `gemini-1.5-flash` model (FREE, 15 req/min)
+5. Select `gemini-2.5-flash` model (FREE, 15 req/min)
 
 ```bash
 # Or set environment variable:
@@ -166,7 +166,7 @@ export GEMINI_API_KEY="your-free-key"
 # 3. Run the app
 streamlit run streamlit_app.py
 
-# 4. In LLM Settings, select "Google Gemini" and use "gemini-1.5-flash"
+# 4. In LLM Settings, select "Google Gemini" and use "gemini-2.5-flash"
 ```
 
 ---

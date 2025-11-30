@@ -5,6 +5,41 @@ from datetime import datetime
 import json
 
 
+class SafeJSONEncoder(json.JSONEncoder):
+    """JSON encoder that handles non-serializable objects safely.
+    
+    This encoder converts:
+    - datetime objects to ISO format strings
+    - dataclasses and custom objects to dicts
+    - sets and tuples to lists
+    - Any other non-serializable objects to strings
+    """
+    
+    def default(self, obj):
+        """Convert non-serializable objects to serializable format.
+        
+        Args:
+            obj: Object to encode
+            
+        Returns:
+            Serializable representation of object
+        """
+        # Convert datetimes to ISO format
+        if hasattr(obj, "isoformat"):
+            return obj.isoformat()
+        
+        # Convert dataclasses to dict
+        if hasattr(obj, "__dict__"):
+            return obj.__dict__
+        
+        # Convert sets, tuples, other iterables to lists
+        if isinstance(obj, (set, tuple)):
+            return list(obj)
+        
+        # Fallback: convert to string
+        return str(obj)
+
+
 def aggregate_reviewer_feedback(reviewer_feedback_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Aggregate feedback from multiple reviewers into a summary.
     
@@ -190,6 +225,13 @@ def _generate_markdown_report(
                 report_lines.append(f"- {point}")
             report_lines.append("")
         
+        # Aggregated Feedback (if available)
+        if hasattr(iteration_result, 'aggregated_feedback') and iteration_result.aggregated_feedback:
+            report_lines.append("#### 🎯 Board Decision (Aggregated)")
+            report_lines.append("")
+            report_lines.append(iteration_result.aggregated_feedback)
+            report_lines.append("")
+        
         # Confidence Score
         confidence_result = iteration_result.confidence_result if hasattr(iteration_result, 'confidence_result') else {}
         score = confidence_result.get('score', 0)
@@ -318,7 +360,11 @@ def _generate_json_report(
         }
     }
     
-    return json.dumps(report, indent=2)
+    try:
+        return json.dumps(report, indent=2, cls=SafeJSONEncoder)
+    except Exception as e:
+        # Raise a wrapped error with context
+        raise RuntimeError(f"JSON report serialization failed: {e}")
 
 
 def _extract_severity(text: str) -> str:
