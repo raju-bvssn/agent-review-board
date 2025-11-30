@@ -88,10 +88,29 @@ def render():
     # Initialize orchestrator if needed
     if not st.session_state.orchestrator:
         try:
-            provider = ProviderFactory.create_provider(
-                st.session_state.llm_config['provider'],
-                st.session_state.llm_config.get('api_key')
-            )
+            provider_name = st.session_state.llm_config['provider']
+            
+            # For Agentforce, pass all configuration parameters
+            if provider_name == 'agentforce':
+                provider = ProviderFactory.create_provider(
+                    provider_name,
+                    agent_id=st.session_state.llm_config.get('agent_id'),
+                    instance_url=st.session_state.llm_config.get('instance_url'),
+                    auth_type=st.session_state.llm_config.get('auth_type'),
+                    client_id=st.session_state.llm_config.get('client_id'),
+                    client_secret=st.session_state.llm_config.get('client_secret'),
+                    username=st.session_state.llm_config.get('username'),
+                    password=st.session_state.llm_config.get('password'),
+                    private_key=st.session_state.llm_config.get('private_key'),
+                    session_id=st.session_state.llm_config.get('session_id'),
+                )
+            else:
+                # For other providers, use api_key
+                provider = ProviderFactory.create_provider(
+                    provider_name,
+                    st.session_state.llm_config.get('api_key')
+                )
+            
             st.session_state.orchestrator = Orchestrator(session_manager, provider)
         except Exception as e:
             st.error(f"Failed to initialize orchestrator: {str(e)}")
