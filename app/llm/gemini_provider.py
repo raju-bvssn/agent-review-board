@@ -1,14 +1,21 @@
 """Google Gemini LLM provider implementation."""
 
 import time
+import json
 from typing import List, Optional, Dict, Any
 from app.llm.base_provider import BaseLLMProvider
 
 try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
+    import httpx
+    HTTPX_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
+    HTTPX_AVAILABLE = False
+
+try:
+    import google.generativeai as genai
+    GENAI_SDK_AVAILABLE = True
+except ImportError:
+    GENAI_SDK_AVAILABLE = False
 
 
 class GeminiProvider(BaseLLMProvider):
@@ -20,6 +27,9 @@ class GeminiProvider(BaseLLMProvider):
     FREE TIER: gemini-1.5-flash is free up to 15 requests per minute.
     """
     
+    # API Configuration
+    API_BASE_URL = "https://generativelanguage.googleapis.com/v1"
+    
     # Free and low-cost models
     DEFAULT_MODEL = "gemini-1.5-flash"  # FREE tier
     DEFAULT_TIMEOUT = 30
@@ -30,7 +40,7 @@ class GeminiProvider(BaseLLMProvider):
         "gemini-1.5-flash",      # FREE - Fast, good for most tasks
         "gemini-1.5-flash-8b",   # FREE - Even faster, lighter
         "gemini-1.5-pro",        # Paid - More capable
-        "gemini-1.0-pro",        # Paid - Previous generation
+        "gemini-pro",            # Standard model
     ]
     
     def __init__(self, api_key: Optional[str] = None, **kwargs):
@@ -47,30 +57,31 @@ class GeminiProvider(BaseLLMProvider):
         
         Raises:
             ValueError: If API key is missing
-            ImportError: If google-generativeai is not installed
+            ImportError: If httpx is not installed
         """
         super().__init__(api_key, **kwargs)
         
-        if not GEMINI_AVAILABLE:
+        if not HTTPX_AVAILABLE:
             raise ImportError(
-                "google-generativeai package not installed. "
-                "Install with: pip install google-generativeai"
+                "httpx package not installed. "
+                "Install with: pip install httpx"
             )
         
         if not api_key:
             raise ValueError("Gemini API key is required")
         
-        # Configure Gemini
-        genai.configure(api_key=api_key)
-        
+        self.api_key = api_key
         self.model = kwargs.get('model', self.DEFAULT_MODEL)
         self.timeout = kwargs.get('timeout', self.DEFAULT_TIMEOUT)
         self.max_retries = kwargs.get('max_retries', self.MAX_RETRIES)
         self.temperature = kwargs.get('temperature', 0.7)
         self.max_output_tokens = kwargs.get('max_tokens', 2000)
+        
+        # Initialize HTTP client
+        self.client = httpx.Client(timeout=self.timeout)
     
     def generate_text(self, prompt: str, **kwargs) -> str:
-        """Generate text from a prompt using Gemini API.
+        """Generate text from a prompt using Gemini REST API v1.
         
         Args:
             prompt: The input prompt
@@ -89,50 +100,101 @@ class GeminiProvider(BaseLLMProvider):
         temperature = kwargs.get('temperature', self.temperature)
         max_tokens = kwargs.get('max_tokens', self.max_output_tokens)
         
+        # Debug logging
+        print(f"[Gemini] Using model: {model_name}")
+        
+        # Build API URL (v1 endpoint)
+        url = f"{self.API_BASE_URL}/models/{model_name}:generateContent?key={self.api_key}"
+        
+        # Build request payload according to Google's v1 API schema
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens
+            }
+        }
+        
         # Retry logic
         last_exception = None
         for attempt in range(self.max_retries):
             try:
-                # Create model instance
-                model = genai.GenerativeModel(model_name)
-                
-                # Configure generation
-                generation_config = genai.types.GenerationConfig(
-                    temperature=temperature,
-                    max_output_tokens=max_tokens
+                # Make POST request
+                response = self.client.post(
+                    url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
                 )
                 
-                # Generate
-                response = model.generate_content(
-                    prompt,
-                    generation_config=generation_config
-                )
+                # Handle HTTP errors
+                if response.status_code == 404:
+                    raise ValueError(
+                        f"Model not supported for API v1. "
+                        f"Try gemini-1.5-flash or gemini-1.5-pro. "
+                        f"(Status: 404, Model: {model_name})"
+                    )
                 
-                # Extract text
-                if response.text:
-                    return response.text
-                else:
-                    raise Exception("Empty response from Gemini")
+                if response.status_code != 200:
+                    error_detail = response.text
+                    raise Exception(
+                        f"Gemini API error (Status {response.status_code}): {error_detail}"
+                    )
+                
+                # Parse response
+                try:
+                    response_data = response.json()
+                except json.JSONDecodeError as e:
+                    raise Exception(
+                        f"Invalid JSON response from Gemini API. "
+                        f"Raw response: {response.text[:500]}"
+                    )
+                
+                # Extract text from response
+                try:
+                    text = response_data["candidates"][0]["content"]["parts"][0]["text"]
+                    if text:
+                        return text
+                    else:
+                        raise Exception("Empty text in Gemini response")
+                
+                except (KeyError, IndexError, TypeError) as e:
+                    raise Exception(
+                        f"Invalid response format from Gemini API. "
+                        f"Expected structure: candidates[0].content.parts[0].text. "
+                        f"Raw response: {json.dumps(response_data, indent=2)[:1000]}"
+                    )
+            
+            except ValueError as e:
+                # Don't retry for 404 or invalid model errors
+                raise e
             
             except Exception as e:
                 error_str = str(e).lower()
                 
                 # Rate limit - retry
-                if 'rate limit' in error_str or 'quota' in error_str:
+                if 'rate limit' in error_str or 'quota' in error_str or '429' in error_str:
                     last_exception = Exception(f"Gemini rate limit exceeded: {str(e)}")
                     if attempt < self.max_retries - 1:
                         wait_time = self.RETRY_DELAY * (2 ** attempt)
+                        print(f"[Gemini] Rate limited, retrying in {wait_time}s...")
                         time.sleep(wait_time)
                         continue
                 
                 # Invalid API key - don't retry
-                elif 'api key' in error_str or 'invalid' in error_str:
+                elif 'api key' in error_str or 'invalid' in error_str or '401' in error_str or '403' in error_str:
                     raise ValueError(f"Invalid Gemini API key: {str(e)}")
                 
                 # Server error - retry
-                elif 'server' in error_str or '500' in error_str:
+                elif 'server' in error_str or '500' in error_str or '502' in error_str or '503' in error_str:
                     last_exception = e
                     if attempt < self.max_retries - 1:
+                        print(f"[Gemini] Server error, retrying...")
                         time.sleep(self.RETRY_DELAY)
                         continue
                 
@@ -150,21 +212,10 @@ class GeminiProvider(BaseLLMProvider):
         Returns:
             List of model identifiers (includes free models)
         """
-        try:
-            # Try to get models from API
-            models = []
-            for m in genai.list_models():
-                if 'generateContent' in m.supported_generation_methods:
-                    models.append(m.name.replace('models/', ''))
-            
-            if models:
-                return sorted(models)
-        except Exception:
-            # Fallback to known models if API fails
-            pass
-        
-        # Return known models (including free ones)
-        return self.AVAILABLE_MODELS
+        # For v1 API, we use the known supported models
+        # The models endpoint in v1 requires different permissions
+        # So we return the known working models
+        return self.AVAILABLE_MODELS.copy()
     
     def validate_connection(self) -> bool:
         """Validate that the API key works.
@@ -173,10 +224,12 @@ class GeminiProvider(BaseLLMProvider):
             True if connection is valid, False otherwise
         """
         try:
-            # Try listing models
-            models = self.list_models()
-            return len(models) > 0
-        except Exception:
+            # Try a simple generation with minimal tokens
+            test_prompt = "Hi"
+            result = self.generate_text(test_prompt, max_tokens=10)
+            return len(result) > 0
+        except Exception as e:
+            print(f"[Gemini] Connection validation failed: {str(e)}")
             return False
     
     def get_provider_name(self) -> str:
@@ -205,7 +258,7 @@ class GeminiProvider(BaseLLMProvider):
         return self.generate_text(prompt, **kwargs)
     
     def embed(self, text: str, **kwargs) -> List[float]:
-        """Generate embeddings for text.
+        """Generate embeddings for text using Gemini REST API v1.
         
         Args:
             text: Text to embed
@@ -215,11 +268,37 @@ class GeminiProvider(BaseLLMProvider):
             List of embedding values
         """
         try:
-            result = genai.embed_content(
-                model="models/embedding-001",
-                content=text
+            # Use embedding model
+            embedding_model = "text-embedding-004"
+            url = f"{self.API_BASE_URL}/models/{embedding_model}:embedContent?key={self.api_key}"
+            
+            payload = {
+                "content": {
+                    "parts": [
+                        {"text": text}
+                    ]
+                }
+            }
+            
+            response = self.client.post(
+                url,
+                json=payload,
+                headers={"Content-Type": "application/json"}
             )
-            return result['embedding']
+            
+            if response.status_code != 200:
+                raise Exception(f"Embedding API error (Status {response.status_code}): {response.text}")
+            
+            response_data = response.json()
+            
+            # Extract embedding values
+            embedding = response_data.get("embedding", {}).get("values", [])
+            
+            if not embedding:
+                raise Exception("No embedding values in response")
+            
+            return embedding
+        
         except Exception as e:
             raise Exception(f"Gemini embedding failed: {str(e)}")
 

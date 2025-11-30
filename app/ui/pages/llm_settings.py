@@ -14,17 +14,37 @@ def render():
     - View available models
     """
     
-    # Header
-    st.title("⚙️ LLM Settings")
-    st.subheader("Configure Your LLM Provider")
+    # Main title with gradient effect
+    st.markdown("""
+    <h1 style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+               -webkit-background-clip: text;
+               -webkit-text-fill-color: transparent;
+               background-clip: text;
+               font-size: 3rem;
+               font-weight: 700;
+               margin-bottom: 0.5rem;'>
+        ⚙️ LLM Provider Configuration
+    </h1>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
     
     # Security notice
     st.info("🔒 **Privacy Notice** — API keys are stored in memory only and never saved to disk")
     
-    st.markdown("---")
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     
-    # Provider selection
-    st.header("Select Provider")
+    # Provider selection section - GLASS CARD
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <h2 style='color: rgba(255, 255, 255, 0.95);
+               font-size: 1.75rem;
+               font-weight: 600;
+               margin-bottom: 1rem;'>
+        🎯 Select Provider
+    </h2>
+    """, unsafe_allow_html=True)
     
     # Get available providers
     available_providers = ProviderFactory.get_available_providers()
@@ -63,14 +83,25 @@ def render():
         else:
             st.info(f"ℹ️ {provider_info['description']}")
     
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Provider-specific configuration
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+    
+    # Provider-specific configuration - GLASS CARD
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    
     api_key = None
     
     # GEMINI CONFIGURATION
     if selected_provider == 'gemini':
-        st.subheader("🔑 Gemini API Configuration")
+        st.markdown("""
+        <h3 style='color: rgba(0, 212, 255, 0.95);
+                   font-size: 1.5rem;
+                   font-weight: 600;
+                   margin-bottom: 1rem;'>
+            🔑 Gemini API Configuration
+        </h3>
+        """, unsafe_allow_html=True)
         
         st.caption(
             "Get your FREE API key from: "
@@ -89,7 +120,14 @@ def render():
     
     # HUGGINGFACE CONFIGURATION
     elif selected_provider == 'huggingface':
-        st.subheader("🔑 HuggingFace API Configuration")
+        st.markdown("""
+        <h3 style='color: rgba(0, 212, 255, 0.95);
+                   font-size: 1.5rem;
+                   font-weight: 600;
+                   margin-bottom: 1rem;'>
+            🔑 HuggingFace API Configuration
+        </h3>
+        """, unsafe_allow_html=True)
         
         st.caption(
             "Get your FREE API token from: "
@@ -108,7 +146,14 @@ def render():
     
     # OLLAMA CONFIGURATION (LOCAL - NO KEY)
     elif selected_provider == 'ollama':
-        st.subheader("🖥️ Ollama Local Setup")
+        st.markdown("""
+        <h3 style='color: rgba(0, 255, 148, 0.95);
+                   font-size: 1.5rem;
+                   font-weight: 600;
+                   margin-bottom: 1rem;'>
+            🖥️ Ollama Local Setup
+        </h3>
+        """, unsafe_allow_html=True)
         
         st.info(
             "**Ollama runs locally on your machine - No API key required!**\n\n"
@@ -156,7 +201,14 @@ def render():
     
     # OPENAI CONFIGURATION
     elif selected_provider == 'openai':
-        st.subheader("🔑 OpenAI API Configuration")
+        st.markdown("""
+        <h3 style='color: rgba(0, 212, 255, 0.95);
+                   font-size: 1.5rem;
+                   font-weight: 600;
+                   margin-bottom: 1rem;'>
+            🔑 OpenAI API Configuration
+        </h3>
+        """, unsafe_allow_html=True)
         
         st.caption(
             "Get your API key from: "
@@ -175,7 +227,14 @@ def render():
     
     # ANTHROPIC CONFIGURATION
     elif selected_provider == 'anthropic':
-        st.subheader("🔑 Anthropic API Configuration")
+        st.markdown("""
+        <h3 style='color: rgba(0, 212, 255, 0.95);
+                   font-size: 1.5rem;
+                   font-weight: 600;
+                   margin-bottom: 1rem;'>
+            🔑 Anthropic API Configuration
+        </h3>
+        """, unsafe_allow_html=True)
         
         st.caption(
             "Get your API key from: "
@@ -194,15 +253,35 @@ def render():
     
     # MOCK CONFIGURATION
     elif selected_provider == 'mock':
+        st.markdown("""
+        <h3 style='color: rgba(179, 0, 255, 0.95);
+                   font-size: 1.5rem;
+                   font-weight: 600;
+                   margin-bottom: 1rem;'>
+            🧪 Mock Provider Configuration
+        </h3>
+        """, unsafe_allow_html=True)
+        
         st.success("✅ Mock Provider selected - No API key required (for testing)")
         st.caption("The Mock Provider returns deterministic responses for testing purposes")
     
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Model selection (if provider is configured)
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+    
+    # Model selection (if provider is configured) - GLASS CARD
     if 'llm_config' in st.session_state and st.session_state.llm_config.get('provider') == selected_provider:
         if 'available_models' in st.session_state and st.session_state.available_models:
-            st.header("📋 Select Model")
+            st.markdown('<div class="glass-card neon-border-blue">', unsafe_allow_html=True)
+            
+            st.markdown("""
+            <h2 style='color: rgba(255, 255, 255, 0.95);
+                       font-size: 1.75rem;
+                       font-weight: 600;
+                       margin-bottom: 1rem;'>
+                📋 Select Model
+            </h2>
+            """, unsafe_allow_html=True)
             
             models = st.session_state.available_models
             
@@ -237,11 +316,22 @@ def render():
             
             # Store selected model
             st.session_state.llm_config['model'] = selected_model
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     
-    st.markdown("---")
+    # Connection testing section - GLASS CARD
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     
-    # Connection testing section
-    st.header("🔌 Test Connection")
+    st.markdown("""
+    <h2 style='color: rgba(255, 255, 255, 0.95);
+               font-size: 1.75rem;
+               font-weight: 600;
+               margin-bottom: 1rem;'>
+        🔌 Test Connection
+    </h2>
+    """, unsafe_allow_html=True)
     
     col1, col2 = st.columns([1, 3])
     
@@ -327,10 +417,21 @@ def render():
             except Exception as e:
                 st.error(f"❌ Connection failed: {str(e)}")
     
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Current configuration display
-    st.header("📊 Current Configuration")
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+    
+    # Current configuration display - GLASS CARD
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <h2 style='color: rgba(255, 255, 255, 0.95);
+               font-size: 1.75rem;
+               font-weight: 600;
+               margin-bottom: 1rem;'>
+        📊 Current Configuration
+    </h2>
+    """, unsafe_allow_html=True)
     
     if 'llm_config' in st.session_state and st.session_state.llm_config.get('provider'):
         config = st.session_state.llm_config
@@ -363,7 +464,9 @@ def render():
     else:
         st.info("No provider configured yet. Select a provider and test connection.")
     
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     
     # Advanced settings
     with st.expander("🔧 Advanced Settings"):
@@ -407,9 +510,23 @@ def render():
             
             st.success("✅ Advanced settings saved!")
     
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+    
     # Quick links
-    st.markdown("---")
-    st.caption("**Quick Links:**")
+    st.markdown("""
+    <div style='padding: 1rem;
+                background: rgba(255, 255, 255, 0.03);
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.1);'>
+        <p style='color: rgba(255, 255, 255, 0.7);
+                  font-size: 0.875rem;
+                  font-weight: 600;
+                  margin-bottom: 0.5rem;'>
+            <strong>Quick Links:</strong>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.caption("[OpenAI API](https://platform.openai.com/api-keys)")

@@ -18,6 +18,7 @@ class SessionState(BaseModel):
         iteration: Current iteration number
         created_at: Session creation timestamp
         temp_folder: Path to temporary session folder
+        is_finalized: Whether session is marked as complete
     """
     
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -31,6 +32,7 @@ class SessionState(BaseModel):
     iteration: int = Field(default=0, description="Current iteration number")
     created_at: datetime = Field(default_factory=datetime.now, description="Session creation time")
     temp_folder: Optional[str] = Field(default=None, description="Temporary folder path")
+    is_finalized: bool = Field(default=False, description="Session finalization status")
 
 
 class LLMConfig(BaseModel):

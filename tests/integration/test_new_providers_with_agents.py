@@ -10,21 +10,30 @@ from app.agents.confidence import ConfidenceAgent
 class TestGeminiWithAgents:
     """Test Gemini provider integration with agents."""
     
-    @patch('app.llm.gemini_provider.GEMINI_AVAILABLE', True)
-    @patch('app.llm.gemini_provider.genai')
-    def test_presenter_with_gemini(self, mock_genai):
+    @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
+    @patch('httpx.Client')
+    def test_presenter_with_gemini(self, mock_client_class):
         """Test PresenterAgent with Gemini provider."""
         from app.llm.gemini_provider import GeminiProvider
         
-        # Mock Gemini response
+        # Mock HTTP response
         mock_response = Mock()
-        mock_response.text = "Problem Summary: Build a web application for task management"
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"text": "Problem Summary: Build a web application for task management"}
+                        ]
+                    }
+                }
+            ]
+        }
         
-        mock_model = Mock()
-        mock_model.generate_content.return_value = mock_response
-        
-        mock_genai.GenerativeModel.return_value = mock_model
-        mock_genai.types.GenerationConfig = Mock
+        mock_client = Mock()
+        mock_client.post.return_value = mock_response
+        mock_client_class.return_value = mock_client
         
         # Create provider and agent
         provider = GeminiProvider(api_key="test-key")
@@ -38,11 +47,11 @@ class TestGeminiWithAgents:
         
         assert isinstance(result, str)
         assert len(result) > 0
-        mock_model.generate_content.assert_called_once()
+        mock_client.post.assert_called_once()
     
-    @patch('app.llm.gemini_provider.GEMINI_AVAILABLE', True)
-    @patch('app.llm.gemini_provider.genai')
-    def test_reviewer_with_gemini(self, mock_genai):
+    @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
+    @patch('httpx.Client')
+    def test_reviewer_with_gemini(self, mock_client_class):
         """Test ReviewerAgent with Gemini provider."""
         from app.llm.gemini_provider import GeminiProvider
         from app.models.feedback import Feedback
@@ -63,11 +72,24 @@ class TestGeminiWithAgents:
         2. Implement caching
         """
         
-        mock_model = Mock()
-        mock_model.generate_content.return_value = mock_response
+        # Mock HTTP response
+        mock_http_response = Mock()
+        mock_http_response.status_code = 200
+        mock_http_response.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"text": mock_response.text}
+                        ]
+                    }
+                }
+            ]
+        }
         
-        mock_genai.GenerativeModel.return_value = mock_model
-        mock_genai.types.GenerationConfig = Mock
+        mock_client = Mock()
+        mock_client.post.return_value = mock_http_response
+        mock_client_class.return_value = mock_client
         
         # Create provider and agent
         provider = GeminiProvider(api_key="test-key")
@@ -250,13 +272,13 @@ class TestOllamaWithAgents:
 class TestProviderCompatibility:
     """Test that all providers follow the same interface."""
     
-    @patch('app.llm.gemini_provider.GEMINI_AVAILABLE', True)
-    @patch('app.llm.gemini_provider.genai')
+    @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
+    @patch('httpx.Client')
     @patch('app.llm.huggingface_provider.requests.post')
     @patch('app.llm.ollama_provider.requests.post')
     @patch('app.llm.ollama_provider.requests.get')
     def test_all_providers_implement_base_interface(
-        self, mock_ollama_get, mock_ollama_post, mock_hf_post, mock_genai
+        self, mock_ollama_get, mock_ollama_post, mock_hf_post, mock_client_class
     ):
         """Test that all providers implement BaseLLMProvider interface."""
         from app.llm.gemini_provider import GeminiProvider
@@ -265,12 +287,23 @@ class TestProviderCompatibility:
         from app.llm.base_provider import BaseLLMProvider
         
         # Mock responses
-        mock_gemini_response = Mock()
-        mock_gemini_response.text = "test response"
-        mock_gemini_model = Mock()
-        mock_gemini_model.generate_content.return_value = mock_gemini_response
-        mock_genai.GenerativeModel.return_value = mock_gemini_model
-        mock_genai.types.GenerationConfig = Mock
+        mock_gemini_http_response = Mock()
+        mock_gemini_http_response.status_code = 200
+        mock_gemini_http_response.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"text": "test response"}
+                        ]
+                    }
+                }
+            ]
+        }
+        
+        mock_client = Mock()
+        mock_client.post.return_value = mock_gemini_http_response
+        mock_client_class.return_value = mock_client
         
         mock_hf_response = Mock()
         mock_hf_response.status_code = 200
@@ -322,13 +355,14 @@ class TestProviderCompatibility:
                 result = provider.generate_text("test")
                 assert isinstance(result, str)
     
-    @patch('app.llm.gemini_provider.GEMINI_AVAILABLE', True)
-    @patch('app.llm.gemini_provider.genai')
-    def test_gemini_free_model_in_list(self, mock_genai):
+    @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
+    @patch('httpx.Client')
+    def test_gemini_free_model_in_list(self, mock_client_class):
         """Test that Gemini includes free model in list."""
         from app.llm.gemini_provider import GeminiProvider
         
-        mock_genai.list_models.side_effect = Exception("API Error")
+        mock_client = Mock()
+        mock_client_class.return_value = mock_client
         
         provider = GeminiProvider(api_key="test-key")
         models = provider.list_models()

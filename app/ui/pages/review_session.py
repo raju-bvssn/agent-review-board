@@ -11,6 +11,8 @@ from app.core.session_manager import SessionManager
 from app.core.orchestrator import Orchestrator
 from app.llm.provider_factory import ProviderFactory
 from app.utils.rerun_guard import RerunGuard, safe_navigation_change
+from app.utils.report_generator import generate_final_report
+from datetime import datetime
 
 
 def init_session_objects():
@@ -247,6 +249,71 @@ def render():
                 st.text(f"Iteration {result.iteration}: Score {result.confidence_result.get('score', 0):.0f}/100")
         else:
             st.text("No iterations yet")
+    
+    st.markdown("---")
+    
+    # Session finalization and report download
+    st.subheader("📄 Final Report")
+    
+    history = orchestrator.get_iteration_history()
+    if history and len(history) > 0:
+        col_report1, col_report2 = st.columns([2, 1])
+        
+        with col_report1:
+            is_finalized = session_manager.is_session_finalized()
+            
+            if not is_finalized:
+                st.info("💡 Mark session as complete to generate final reports")
+                
+                if st.button("✅ Finalize Session", type="primary"):
+                    success = session_manager.finalize_session()
+                    if success:
+                        st.success("✅ Session finalized! Download reports below.")
+                    else:
+                        st.error("❌ Failed to finalize session")
+            else:
+                st.success("✅ Session finalized")
+        
+        with col_report2:
+            # Show download buttons only if session has iterations
+            session_data = session_manager.get_session_data()
+            
+            if session_data:
+                # Generate Markdown report
+                markdown_report = generate_final_report(
+                    session_data,
+                    history,
+                    format="markdown"
+                )
+                
+                filename_md = f"review_report_{session_data['session_name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+                
+                st.download_button(
+                    label="📥 Download Markdown",
+                    data=markdown_report,
+                    file_name=filename_md,
+                    mime="text/markdown",
+                    use_container_width=True
+                )
+                
+                # Generate JSON report
+                json_report = generate_final_report(
+                    session_data,
+                    history,
+                    format="json"
+                )
+                
+                filename_json = f"review_report_{session_data['session_name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                
+                st.download_button(
+                    label="📥 Download JSON",
+                    data=json_report,
+                    file_name=filename_json,
+                    mime="application/json",
+                    use_container_width=True
+                )
+    else:
+        st.info("Run at least one iteration to generate reports")
 
 
 def run_iteration(current_session, session_manager, orchestrator):

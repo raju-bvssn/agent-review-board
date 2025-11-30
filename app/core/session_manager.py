@@ -69,6 +69,34 @@ class SessionManager:
         """
         return self.current_session
     
+    def finalize_session(self) -> bool:
+        """Mark current session as complete and finalized.
+        
+        This does NOT end the session or clean up resources,
+        it just marks it as finished so reports can be generated.
+        
+        Returns:
+            True if successful, False if no active session
+        """
+        if self.current_session is None:
+            return False
+        
+        # Mark session as finalized
+        self.current_session.is_finalized = True
+        
+        return True
+    
+    def is_session_finalized(self) -> bool:
+        """Check if current session is finalized.
+        
+        Returns:
+            True if finalized, False otherwise
+        """
+        if self.current_session is None:
+            return False
+        
+        return getattr(self.current_session, 'is_finalized', False)
+    
     def end_session(self) -> bool:
         """End the current session and cleanup resources.
         
@@ -181,6 +209,29 @@ class SessionManager:
         if history:
             return history[-1].get("presenter_output")
         return None
+    
+    def get_session_data(self) -> Optional[Dict[str, Any]]:
+        """Get current session data as dictionary.
+        
+        Returns:
+            Dictionary with session information or None if no active session
+        """
+        if self.current_session is None:
+            return None
+        
+        return {
+            "session_id": self.current_session.session_id,
+            "session_name": self.current_session.session_name,
+            "requirements": self.current_session.requirements,
+            "selected_roles": self.current_session.selected_roles,
+            "models_config": self.current_session.models_config,
+            "iteration": self.current_session.iteration,
+            "temp_folder": self.current_session.temp_folder,
+            "uploaded_files": self.current_session.uploaded_files,
+            "created_at": getattr(self.current_session, 'created_at', ''),
+            "is_finalized": getattr(self.current_session, 'is_finalized', False),
+            "provider": self.current_session.models_config.get('provider', 'Unknown')
+        }
     
     def save_uploaded_file(self, filename: str, content: bytes) -> str:
         """Save an uploaded file to session temp folder.

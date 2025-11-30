@@ -102,9 +102,9 @@ class TestProviderFactory:
         
         assert provider.config.get('custom_param') == 'test_value'
     
-    @patch('app.llm.gemini_provider.GEMINI_AVAILABLE', True)
-    @patch('app.llm.gemini_provider.genai')
-    def test_create_gemini_provider(self, mock_genai):
+    @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
+    @patch('httpx.Client')
+    def test_create_gemini_provider(self, mock_client_class):
         """Test creating Gemini provider."""
         from app.llm.gemini_provider import GeminiProvider
         
@@ -166,9 +166,9 @@ class TestProviderFactory:
         unknown_info = ProviderFactory.get_provider_info('unknown')
         assert unknown_info == {}
     
-    @patch('app.llm.gemini_provider.GEMINI_AVAILABLE', True)
-    @patch('app.llm.gemini_provider.genai')
-    def test_create_gemini_without_api_key_raises_error(self, mock_genai):
+    @patch('app.llm.gemini_provider.HTTPX_AVAILABLE', True)
+    @patch('httpx.Client')
+    def test_create_gemini_without_api_key_raises_error(self, mock_client_class):
         """Test that Gemini without API key raises error."""
         with pytest.raises(ValueError, match="API key required"):
             ProviderFactory.create_provider('gemini')

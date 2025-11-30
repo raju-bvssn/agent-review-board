@@ -6,6 +6,92 @@ from app.core.session_manager import SessionManager
 from app.models.session_state import SessionState
 
 
+class TestSessionFinalization:
+    """Tests for session finalization functionality."""
+    
+    def test_finalize_session(self):
+        """Test that finalize_session marks session as complete."""
+        manager = SessionManager()
+        
+        session = manager.create_session(
+            session_name="Test Session",
+            requirements="Test",
+            selected_roles=["technical"],
+            models_config={}
+        )
+        
+        # Initially not finalized
+        assert not manager.is_session_finalized()
+        
+        # Finalize it
+        result = manager.finalize_session()
+        
+        assert result is True
+        assert manager.is_session_finalized()
+        assert session.is_finalized is True
+    
+    def test_finalize_session_no_active_session(self):
+        """Test finalize_session returns False with no active session."""
+        manager = SessionManager()
+        
+        result = manager.finalize_session()
+        
+        assert result is False
+        assert not manager.is_session_finalized()
+    
+    def test_is_session_finalized_no_session(self):
+        """Test is_session_finalized returns False with no session."""
+        manager = SessionManager()
+        
+        assert not manager.is_session_finalized()
+    
+    def test_get_session_data(self):
+        """Test get_session_data returns correct dictionary."""
+        manager = SessionManager()
+        
+        session = manager.create_session(
+            session_name="Data Test Session",
+            requirements="Test requirements",
+            selected_roles=["technical", "security"],
+            models_config={"provider": "openai", "model": "gpt-4"}
+        )
+        
+        data = manager.get_session_data()
+        
+        assert data is not None
+        assert data['session_name'] == "Data Test Session"
+        assert data['requirements'] == "Test requirements"
+        assert len(data['selected_roles']) == 2
+        assert data['provider'] == "openai"
+        assert data['iteration'] == 0
+        assert data['is_finalized'] is False
+    
+    def test_get_session_data_no_session(self):
+        """Test get_session_data returns None with no active session."""
+        manager = SessionManager()
+        
+        data = manager.get_session_data()
+        
+        assert data is None
+    
+    def test_finalize_session_persists_after_increment(self):
+        """Test that finalization status persists after iteration increment."""
+        manager = SessionManager()
+        
+        manager.create_session(
+            session_name="Test",
+            requirements="Test",
+            selected_roles=["technical"],
+            models_config={}
+        )
+        
+        manager.finalize_session()
+        assert manager.is_session_finalized()
+        
+        manager.increment_iteration()
+        assert manager.is_session_finalized()  # Should still be finalized
+
+
 class TestSessionManager:
     """Tests for SessionManager."""
     

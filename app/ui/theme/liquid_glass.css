@@ -1,0 +1,1250 @@
+/* 
+ * LIQUID GLASS THEME - Apple-style Frosted Glass Design
+ * Agent Review Board UI Theme
+ * 
+ * Features:
+ * - Frosted glass cards with blur effects
+ * - Neon accent edges and borders
+ * - Smooth gradient backgrounds
+ * - Fluid animations and transitions
+ * - Modern typography with SF Pro-inspired fonts
+ */
+
+/* ============================================
+   GLOBAL VARIABLES & COLOR PALETTE
+   ============================================ */
+:root {
+    /* Glass Colors */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-bg-light: rgba(255, 255, 255, 0.08);
+    --glass-bg-hover: rgba(255, 255, 255, 0.12);
+    --glass-border: rgba(255, 255, 255, 0.18);
+    
+    /* Neon Accents */
+    --neon-blue: #00d4ff;
+    --neon-purple: #b300ff;
+    --neon-pink: #ff00e5;
+    --neon-green: #00ff94;
+    --neon-orange: #ff6b35;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-success: linear-gradient(135deg, #00ff94 0%, #00d4ff 100%);
+    --gradient-warning: linear-gradient(135deg, #ff6b35 0%, #ff9068 100%);
+    --gradient-danger: linear-gradient(135deg, #ff0080 0%, #ff5a5f 100%);
+    --gradient-info: linear-gradient(135deg, #00d4ff 0%, #7b68ee 100%);
+    
+    /* Background */
+    --bg-primary: #0a0e27;
+    --bg-secondary: #151b3d;
+    --bg-tertiary: #1e2749;
+    
+    /* Text Colors */
+    --text-primary: rgba(255, 255, 255, 0.95);
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --shadow-neon: 0 0 20px rgba(0, 212, 255, 0.3);
+    
+    /* Blur */
+    --blur-sm: blur(8px);
+    --blur-md: blur(16px);
+    --blur-lg: blur(32px);
+    
+    /* Transitions */
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   BASE STYLES & TYPOGRAPHY
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background: var(--bg-primary);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(102, 126, 234, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(118, 75, 162, 0.1) 0px, transparent 50%);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   STREAMLIT APP CONTAINER
+   ============================================ */
+.stApp {
+    background: transparent;
+}
+
+/* Main content area */
+.main .block-container {
+    padding: 2rem 3rem;
+    max-width: 1400px;
+}
+
+/* ============================================
+   PHASE 3.6 - GLOBAL DARK LIQUID-GLASS ENFORCEMENT
+   Forces dark theme across ALL pages and components
+   ============================================ */
+
+/* Global page background - highest level override */
+html, body {
+    background: #0a0e27 !important;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(102, 126, 234, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(118, 75, 162, 0.1) 0px, transparent 50%) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Core Streamlit containers - force dark background */
+main,
+.main,
+section.main,
+.block-container,
+[data-testid="stAppViewContainer"],
+[data-testid="stApp"],
+[data-testid="stDecoration"],
+[data-testid="stToolbar"],
+[data-testid="stHeader"],
+header,
+.stApp > header {
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Sidebar dark glass enforcement */
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] > div,
+section[data-testid="stSidebar"] > div > div,
+.css-1d391kg,
+[data-testid="stSidebarNav"] {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(32px) !important;
+    -webkit-backdrop-filter: blur(32px) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+/* All sections and divs - prevent white backgrounds */
+section,
+div:not([class*="glass-card"]):not([role="alert"]) {
+    background-color: transparent !important;
+}
+
+/* Container backgrounds */
+.element-container,
+.stMarkdownContainer,
+[data-testid="column"] {
+    background: transparent !important;
+}
+
+/* Input container wrappers - force dark glass */
+.stTextInput > div,
+.stTextArea > div,
+.stNumberInput > div,
+.stSelectbox > div,
+.stMultiSelect > div,
+.stDateInput > div,
+.stTimeInput > div,
+[data-baseweb="input"],
+[data-baseweb="textarea"],
+[data-baseweb="select"] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-radius: 12px !important;
+}
+
+/* Input fields themselves - comprehensive override */
+input,
+textarea,
+select,
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input,
+.stDateInput input,
+.stTimeInput input,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Select dropdown backgrounds */
+[data-baseweb="select"] > div,
+.stSelectbox select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.97) !important;
+}
+
+/* File uploader - complete override */
+.stFileUploader,
+.stFileUploader > div,
+.stFileUploader section,
+[data-testid="stFileUploader"],
+[data-testid="stFileUploaderDropzone"] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 2px dashed rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* File uploader text */
+.stFileUploader label,
+.stFileUploader span,
+.stFileUploader small {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Button comprehensive override */
+button,
+.stButton button,
+.stDownloadButton button,
+.stFormSubmitButton button,
+button[kind="primary"],
+button[kind="secondary"],
+button[kind="tertiary"] {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Primary button specific override */
+button[kind="primary"],
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+}
+
+/* Checkbox and radio inputs */
+.stCheckbox,
+.stRadio {
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.stCheckbox label,
+.stRadio label {
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Slider */
+.stSlider {
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Dataframe/table backgrounds */
+.stDataFrame,
+[data-testid="stDataFrame"],
+.dataframe,
+table {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dataframe th,
+.dataframe td,
+table th,
+table td {
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Expander backgrounds */
+.streamlit-expanderHeader,
+.streamlit-expanderContent {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"],
+.stTabs [data-baseweb="tab"],
+.stTabs [data-baseweb="tab-panel"] {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Alert boxes - maintain but ensure dark */
+.stAlert,
+.stSuccess,
+.stInfo,
+.stWarning,
+.stError {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* Code blocks */
+.stCodeBlock,
+pre,
+code {
+    background: rgba(0, 0, 0, 0.3) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Metrics */
+[data-testid="stMetric"],
+[data-testid="metric-container"] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Markdown content */
+.stMarkdown,
+.stMarkdown p,
+.stMarkdown span,
+.stMarkdown div {
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Global typography enforcement - all text elements */
+p, span, label, div, h1, h2, h3, h4, h5, h6, a, li, td, th {
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Links maintain neon blue */
+a, a:visited {
+    color: var(--neon-blue) !important;
+}
+
+a:hover {
+    color: var(--neon-purple) !important;
+}
+
+/* Spinner */
+.stSpinner > div {
+    border-color: var(--neon-blue) transparent transparent transparent !important;
+}
+
+/* Progress bar */
+.stProgress > div > div {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.stProgress > div > div > div {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+/* Form elements */
+form {
+    background: transparent !important;
+}
+
+/* Column containers */
+[data-testid="column"],
+.css-12w0qpk {
+    background: transparent !important;
+}
+
+/* Prevent any white flashes */
+* {
+    background-attachment: fixed !important;
+}
+
+/* Scrollbar for consistency */
+::-webkit-scrollbar {
+    background: var(--bg-secondary) !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Widget labels */
+.stTextInput label,
+.stTextArea label,
+.stSelectbox label,
+.stNumberInput label,
+.stSlider label,
+.stCheckbox label,
+.stRadio label,
+.stFileUploader label {
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Placeholder text */
+::placeholder,
+input::placeholder,
+textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Caption text */
+.stCaption,
+small,
+.css-16huue1 {
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* END PHASE 3.6 GLOBAL ENFORCEMENT */
+
+/* ============================================
+   GLASS CARD COMPONENTS
+   ============================================ */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        transparent 100%);
+}
+
+.glass-card:hover {
+    background: var(--glass-bg-hover);
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: var(--shadow-neon), var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   STREAMLIT NATIVE COMPONENTS - ENHANCED
+   ============================================ */
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
+}
+
+h1 {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 3rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+h2 {
+    font-size: 2rem !important;
+    margin-top: 2rem !important;
+    margin-bottom: 1rem !important;
+}
+
+h3 {
+    font-size: 1.5rem !important;
+    color: var(--text-secondary) !important;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-lg);
+    -webkit-backdrop-filter: var(--blur-lg);
+    border-right: 1px solid var(--glass-border);
+}
+
+section[data-testid="stSidebar"] > div {
+    background: transparent;
+}
+
+/* Buttons */
+.stButton > button {
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+    font-size: 1rem;
+}
+
+.stButton > button:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4), var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.stButton > button:active {
+    transform: translateY(0);
+}
+
+/* Primary button variant */
+.stButton > button[kind="primary"],
+.stButton > button[data-baseweb="button"][kind="primary"] {
+    background: var(--gradient-primary);
+    border: none;
+    box-shadow: var(--shadow-neon), var(--shadow-md);
+}
+
+.stButton > button[kind="primary"]:hover {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.6), var(--shadow-lg);
+    transform: translateY(-3px);
+}
+
+/* Secondary button */
+.stButton > button[kind="secondary"] {
+    background: transparent;
+    border: 2px solid var(--neon-blue);
+}
+
+/* Text Input */
+.stTextInput > div > div > input,
+.stTextArea textarea {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    transition: all var(--transition-fast);
+    font-size: 1rem;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea textarea:focus {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+    outline: none;
+}
+
+/* Select Box */
+.stSelectbox > div > div {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    transition: all var(--transition-fast);
+}
+
+.stSelectbox > div > div:hover {
+    border-color: var(--neon-blue);
+}
+
+/* Slider */
+.stSlider > div > div > div {
+    background: var(--glass-bg);
+}
+
+.stSlider [role="slider"] {
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-neon);
+}
+
+/* Number Input */
+.stNumberInput > div > div > input {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-primary);
+}
+
+/* File Uploader */
+.stFileUploader > div {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 2px dashed var(--glass-border);
+    border-radius: 16px;
+    padding: 2rem;
+    transition: all var(--transition-normal);
+}
+
+.stFileUploader > div:hover {
+    border-color: var(--neon-blue);
+    background: var(--glass-bg-light);
+}
+
+/* ============================================
+   ALERT & MESSAGE BOXES
+   ============================================ */
+.stAlert {
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    padding: 1rem 1.5rem;
+    box-shadow: var(--shadow-md);
+}
+
+/* Success */
+.stSuccess {
+    border-left: 4px solid var(--neon-green);
+    background: linear-gradient(90deg, rgba(0, 255, 148, 0.1) 0%, var(--glass-bg-light) 100%);
+}
+
+/* Info */
+.stInfo {
+    border-left: 4px solid var(--neon-blue);
+    background: linear-gradient(90deg, rgba(0, 212, 255, 0.1) 0%, var(--glass-bg-light) 100%);
+}
+
+/* Warning */
+.stWarning {
+    border-left: 4px solid var(--neon-orange);
+    background: linear-gradient(90deg, rgba(255, 107, 53, 0.1) 0%, var(--glass-bg-light) 100%);
+}
+
+/* Error */
+.stError {
+    border-left: 4px solid var(--neon-pink);
+    background: linear-gradient(90deg, rgba(255, 0, 229, 0.1) 0%, var(--glass-bg-light) 100%);
+}
+
+/* ============================================
+   METRICS & STATISTICS
+   ============================================ */
+[data-testid="stMetricValue"] {
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--text-secondary) !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+[data-testid="stMetricDelta"] {
+    font-size: 0.875rem !important;
+}
+
+/* Metric container */
+[data-testid="metric-container"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-normal);
+}
+
+[data-testid="metric-container"]:hover {
+    background: var(--glass-bg-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   EXPANDER
+   ============================================ */
+.streamlit-expanderHeader {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    transition: all var(--transition-fast);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.streamlit-expanderHeader:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--neon-blue);
+}
+
+.streamlit-expanderContent {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 1.5rem;
+    margin-top: -12px;
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+    background: transparent;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px 12px 0 0;
+    padding: 0.75rem 1.5rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background: var(--glass-bg-hover);
+    color: var(--text-primary);
+}
+
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    background: var(--glass-bg-light);
+    border-bottom-color: transparent;
+    color: var(--neon-blue);
+    border-color: var(--neon-blue);
+}
+
+.stTabs [data-baseweb="tab-panel"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-radius: 0 12px 12px 12px;
+    padding: 2rem;
+}
+
+/* ============================================
+   COLUMNS & CONTAINERS
+   ============================================ */
+.stColumn > div {
+    background: transparent;
+}
+
+/* Container with glass effect */
+.element-container {
+    transition: all var(--transition-normal);
+}
+
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
+.stCodeBlock {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+pre {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+code {
+    color: var(--neon-blue);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+/* ============================================
+   DATAFRAME & TABLES
+   ============================================ */
+.stDataFrame {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.dataframe {
+    color: var(--text-primary) !important;
+}
+
+.dataframe thead th {
+    background: var(--glass-bg-light);
+    color: var(--text-primary);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--neon-blue);
+}
+
+.dataframe tbody tr:hover {
+    background: var(--glass-bg-hover);
+}
+
+/* ============================================
+   SPINNER & PROGRESS
+   ============================================ */
+.stSpinner > div {
+    border-color: var(--neon-blue) transparent transparent transparent;
+}
+
+.stProgress > div > div {
+    background: var(--glass-bg);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.stProgress > div > div > div {
+    background: var(--gradient-primary);
+}
+
+/* ============================================
+   CHECKBOX & RADIO
+   ============================================ */
+.stCheckbox {
+    color: var(--text-primary);
+}
+
+.stCheckbox input[type="checkbox"] {
+    accent-color: var(--neon-blue);
+}
+
+.stRadio label {
+    color: var(--text-primary);
+}
+
+.stRadio input[type="radio"] {
+    accent-color: var(--neon-blue);
+}
+
+/* ============================================
+   MARKDOWN & TEXT
+   ============================================ */
+.stMarkdown {
+    color: var(--text-primary);
+}
+
+.stMarkdown a {
+    color: var(--neon-blue);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    border-bottom: 1px solid transparent;
+}
+
+.stMarkdown a:hover {
+    color: var(--neon-purple);
+    border-bottom-color: var(--neon-purple);
+}
+
+.stMarkdown hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--glass-border) 50%, 
+        transparent 100%);
+    margin: 2rem 0;
+}
+
+/* ============================================
+   CAPTION & SMALL TEXT
+   ============================================ */
+.stCaption {
+    color: var(--text-muted) !important;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* ============================================
+   CUSTOM ANIMATIONS
+   ============================================ */
+@keyframes glow-pulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.animate-glow {
+    animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 3s linear infinite;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.glass-light {
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--blur-sm);
+    -webkit-backdrop-filter: var(--blur-sm);
+}
+
+.glass-medium {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+}
+
+.glass-heavy {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: var(--blur-lg);
+    -webkit-backdrop-filter: var(--blur-lg);
+}
+
+.neon-border-blue {
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.neon-border-purple {
+    border: 1px solid var(--neon-purple);
+    box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+}
+
+.neon-border-green {
+    border: 1px solid var(--neon-green);
+    box-shadow: 0 0 10px rgba(0, 255, 148, 0.3);
+}
+
+.gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: 1rem;
+    }
+    
+    h1 {
+        font-size: 2rem !important;
+    }
+    
+    h2 {
+        font-size: 1.5rem !important;
+    }
+    
+    .glass-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--glass-bg-light);
+    border-radius: 6px;
+    border: 2px solid var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--glass-bg-hover);
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .glass-card {
+        background: white;
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+    outline: 2px solid var(--neon-blue);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+@media (prefers-contrast: high) {
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.15);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --text-primary: #ffffff;
+    }
+}
+
+/* ============================================
+   PHASE 3.5 ENHANCEMENTS
+   UI Label Visibility & Input Field Glass Enhancement
+   ============================================ */
+
+/* High-contrast form labels for dark glass UI */
+.stTextInput label div,
+.stSelectbox label div,
+.stTextArea label div,
+.stFileUploader label div,
+.stNumberInput label div,
+.stSlider label div,
+.stCheckbox label,
+.stRadio label {
+    color: rgba(255, 255, 255, 0.92) !important; 
+    font-weight: 500 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.25px !important;
+}
+
+/* Sub-labels / helper text readability */
+.help-text,
+.stMarkdown p {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Better placeholder text contrast */
+input::placeholder,
+textarea::placeholder,
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: rgba(255, 255, 255, 0.55) !important;
+    opacity: 1 !important;
+}
+
+/* Enhanced glass-themed input fields */
+.stTextInput > div > div > input,
+.stTextArea > div > textarea,
+.stSelectbox > div > div,
+.stNumberInput > div > div > input {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    padding: 10px 12px !important;
+    transition: all var(--transition-fast) !important;
+}
+
+/* Enhanced focus states for inputs */
+.stTextInput > div > div > input:focus,
+.stTextArea > div > textarea:focus,
+.stNumberInput > div > div > input:focus {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(0, 212, 255, 0.6) !important;
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2) !important;
+    outline: none !important;
+}
+
+/* Glass-style file uploader */
+.stFileUploader > div:first-child,
+.stFileUploader section {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    border: 2px dashed rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    transition: all var(--transition-normal) !important;
+}
+
+.stFileUploader > div:first-child:hover,
+.stFileUploader section:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(0, 212, 255, 0.5) !important;
+}
+
+.stFileUploader label,
+.stFileUploader label div {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 500 !important;
+}
+
+.stFileUploader small {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Section headings with subtle glow */
+h2, h3 {
+    color: rgba(255, 255, 255, 0.95) !important;
+    text-shadow: 0 0 6px rgba(0, 212, 255, 0.35) !important;
+}
+
+/* Select dropdown menu (when open) */
+[data-baseweb="select"] [role="listbox"],
+.stSelectbox [role="listbox"] {
+    background: rgba(10, 14, 39, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-baseweb="select"] [role="option"],
+.stSelectbox [role="option"] {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background: transparent !important;
+    transition: all var(--transition-fast) !important;
+}
+
+[data-baseweb="select"] [role="option"]:hover,
+.stSelectbox [role="option"]:hover {
+    background: rgba(0, 212, 255, 0.15) !important;
+    color: var(--neon-blue) !important;
+}
+
+/* Enhanced textarea */
+.stTextArea textarea {
+    min-height: 100px !important;
+    resize: vertical !important;
+}
+
+/* Number input buttons */
+.stNumberInput button {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    transition: all var(--transition-fast) !important;
+}
+
+.stNumberInput button:hover {
+    background: rgba(0, 212, 255, 0.15) !important;
+    border-color: var(--neon-blue) !important;
+    color: var(--neon-blue) !important;
+}
+
+/* Form validation messages */
+.stTextInput small,
+.stTextArea small,
+.stNumberInput small {
+    color: rgba(255, 255, 255, 0.65) !important;
+    font-size: 0.8rem !important;
+}
+
+/* Password input with enhanced security feel */
+.stTextInput input[type="password"] {
+    letter-spacing: 0.2em !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.stTextInput input[type="password"]::placeholder {
+    letter-spacing: normal !important;
+}
+
+/* Enhanced selectbox arrow */
+.stSelectbox svg {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* File uploader uploaded file display */
+.stFileUploader [data-testid="stFileUploaderFile"] {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 8px !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+.stFileUploader [data-testid="stFileUploaderFile"] button {
+    color: rgba(255, 0, 80, 0.9) !important;
+    transition: all var(--transition-fast) !important;
+}
+
+.stFileUploader [data-testid="stFileUploaderFile"] button:hover {
+    color: var(--neon-pink) !important;
+}
+
+/* Form container improvements */
+form {
+    background: transparent !important;
+}
+
+/* Disabled input state */
+.stTextInput input:disabled,
+.stTextArea textarea:disabled,
+.stSelectbox div:has(input:disabled),
+.stNumberInput input:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* END PHASE 3.5 ENHANCEMENTS */
+

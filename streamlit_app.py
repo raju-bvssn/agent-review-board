@@ -10,8 +10,24 @@ if the target page differs from current page before triggering rerun.
 """
 
 import streamlit as st
+
+# CRITICAL: Page config must be the first Streamlit command
+st.set_page_config(
+    page_title="Agent Review Board",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state safely (prevents cloud refresh issues)
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+    st.session_state.current_page = "start_session"
+
 from app.ui.pages import start_session, llm_settings, review_session
 from app.utils.rerun_guard import init_rerun_guards, safe_navigation_change, reset_rerun_guards
+from app.ui.theme.theme_manager import apply_liquid_glass_theme_once
+from app.utils.env import is_cloud
 
 
 def main():
@@ -20,23 +36,21 @@ def main():
     ANTI-RECURSION: Initializes rerun guards to prevent infinite loops.
     """
     
-    # Page configuration
-    st.set_page_config(
-        page_title="Agent Review Board",
-        page_icon="🤖",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+    # Apply Liquid Glass theme (CSS only - no logic changes)
+    theme_html = apply_liquid_glass_theme_once()
+    if theme_html:
+        st.markdown(theme_html, unsafe_allow_html=True)
     
     # Initialize rerun guards (CRITICAL: must be first)
     init_rerun_guards()
     
-    # Initialize session state for navigation if not exists
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'start_session'
-    
     # Sidebar navigation
     st.sidebar.title("🤖 Agent Review Board")
+    
+    # Show cloud deployment banner if running on Streamlit Cloud
+    if is_cloud():
+        st.sidebar.info("☁️ Running on Streamlit Cloud – API keys required in Secrets.")
+    
     st.sidebar.markdown("---")
     
     # Navigation buttons with anti-recursion protection

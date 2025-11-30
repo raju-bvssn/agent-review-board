@@ -111,8 +111,28 @@ def render():
     st.header("🤖 Model Selection")
     st.caption("Assign models to each agent (Presenter + Reviewers)")
     
-    # Mock model list (will come from LLM provider in Phase 2)
-    available_models = ["mock-model-small", "mock-model-medium", "mock-model-large"]
+    # Load models from configured provider (or use mock as fallback)
+    if 'llm_config' in st.session_state and 'available_models' in st.session_state:
+        # Use models from configured provider
+        available_models = st.session_state.available_models
+        provider_name = st.session_state.llm_config.get('provider', 'Mock').upper()
+        
+        if available_models and len(available_models) > 0:
+            st.info(f"📡 Using models from **{provider_name}** provider (configured in LLM Settings)")
+        else:
+            # Fallback if provider returned empty list
+            available_models = ["mock-model-small", "mock-model-medium", "mock-model-large"]
+            st.warning("⚠️ Provider returned no models. Using mock models as fallback.")
+    else:
+        # No provider configured - use mock models
+        available_models = ["mock-model-small", "mock-model-medium", "mock-model-large"]
+        
+        col_warn1, col_warn2 = st.columns([3, 1])
+        with col_warn1:
+            st.warning("⚠️ No LLM provider configured. Using mock models for testing only.")
+        with col_warn2:
+            if st.button("⚙️ Configure Provider"):
+                safe_navigation_change(st.session_state.get('current_page', 'start_session'), 'llm_settings')
     
     # Presenter model selection
     st.subheader("Presenter Agent")
@@ -163,8 +183,11 @@ def render():
             
             # Create session
             try:
-                # Build models config
-                models_config = {'presenter': presenter_model}
+                # Build models config with provider information
+                models_config = {
+                    'presenter': presenter_model,
+                    'provider': st.session_state.llm_config.get('provider', 'mock') if 'llm_config' in st.session_state else 'mock'
+                }
                 if selected_roles:
                     for role in selected_roles:
                         models_config[role] = reviewer_models.get(role, available_models[0])

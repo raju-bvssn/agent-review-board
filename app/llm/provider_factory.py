@@ -8,6 +8,7 @@ from app.llm.anthropic_provider import AnthropicProvider
 from app.llm.gemini_provider import GeminiProvider
 from app.llm.huggingface_provider import HuggingFaceProvider
 from app.llm.ollama_provider import OllamaProvider
+from app.utils.env import is_cloud
 
 
 class ProviderFactory:
@@ -21,19 +22,23 @@ class ProviderFactory:
     - Anthropic (Paid - Claude)
     - Gemini (FREE tier available - gemini-1.5-flash)
     - HuggingFace (FREE models available)
-    - Ollama (FREE local models)
+    - Ollama (FREE local models - LOCAL ONLY, not available in cloud)
     - Mock (Testing only)
     """
     
     # Registry of available providers
+    # Build dynamically to exclude Ollama in cloud environment
     PROVIDERS = {
         'mock': MockLLMProvider,
         'openai': OpenAIProvider,
         'anthropic': AnthropicProvider,
         'gemini': GeminiProvider,
         'huggingface': HuggingFaceProvider,
-        'ollama': OllamaProvider,
     }
+    
+    # Add Ollama only in local environment (not supported in Streamlit Cloud)
+    if not is_cloud():
+        PROVIDERS['ollama'] = OllamaProvider
     
     @classmethod
     def create_provider(
@@ -108,7 +113,11 @@ class ProviderFactory:
         Returns:
             True if API key required, False otherwise
         """
-        return provider_name.lower().strip() not in ('mock', 'ollama')
+        no_key_providers = ['mock']
+        if not is_cloud():
+            no_key_providers.append('ollama')
+        
+        return provider_name.lower().strip() not in no_key_providers
     
     @classmethod
     def get_free_providers(cls) -> list:
@@ -117,7 +126,13 @@ class ProviderFactory:
         Returns:
             List of provider names that are free or have free tiers
         """
-        return ['mock', 'gemini', 'huggingface', 'ollama']
+        free_providers = ['mock', 'gemini', 'huggingface']
+        
+        # Add Ollama only in local environment
+        if not is_cloud():
+            free_providers.append('ollama')
+        
+        return free_providers
     
     @classmethod
     def get_provider_info(cls, provider_name: str) -> Dict[str, Any]:
@@ -167,10 +182,11 @@ class ProviderFactory:
             },
             'ollama': {
                 'name': 'Ollama (Local)',
-                'description': 'FREE local models (llama3, mistral, etc.)',
+                'description': 'FREE local models (llama3, mistral, etc.) - LOCAL ONLY',
                 'free': True,
                 'requires_key': False,
                 'local': True,
+                'cloud_available': False,
             },
         }
         
