@@ -382,9 +382,25 @@ def render():
                         if 'llm_config' not in st.session_state:
                             st.session_state.llm_config = {}
                         
+                        # Check if API key or provider changed
+                        key_changed = (
+                            'api_key' in st.session_state.llm_config and 
+                            st.session_state.llm_config.get('api_key') != api_key
+                        )
+                        provider_changed = (
+                            'provider' in st.session_state.llm_config and 
+                            st.session_state.llm_config.get('provider') != selected_provider
+                        )
+                        
                         st.session_state.llm_config['provider'] = selected_provider
                         st.session_state.llm_config['api_key'] = api_key
                         st.session_state.available_models = models
+                        
+                        # Clear orchestrator if API key or provider changed
+                        # This forces recreation with the new credentials
+                        if (key_changed or provider_changed) and 'orchestrator' in st.session_state:
+                            st.session_state.orchestrator = None
+                            st.info("🔄 Provider configuration updated. Orchestrator will be recreated on next iteration.")
                         
                         # Auto-select default free model
                         if selected_provider == 'gemini':
