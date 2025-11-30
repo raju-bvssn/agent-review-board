@@ -98,11 +98,11 @@ Address all feedback points while maintaining clarity and professionalism."""
             llm_provider: LLM provider instance
             **kwargs: Additional configuration
                 - temperature: LLM temperature (default: 0.7)
-                - max_tokens: Maximum tokens to generate (default: 6000)
+                - max_tokens: Maximum tokens to generate (default: 12000)
         """
         super().__init__(llm_provider, role="presenter", **kwargs)
         self.temperature = kwargs.get('temperature', 0.7)
-        self.max_tokens = kwargs.get('max_tokens', 6000)  # Higher limit for complete documents with Gemini 2.5 thinking tokens
+        self.max_tokens = kwargs.get('max_tokens', 12000)  # Increased to 12000 to accommodate Gemini 2.5 thinking tokens (~6000) + output (~6000)
     
     def generate(
         self,
