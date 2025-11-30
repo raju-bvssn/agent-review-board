@@ -202,6 +202,16 @@ class TestAgentforceProvider:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
         
+        # Mock successful Agentforce response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "output": {
+                "text": "Real agent response from Salesforce"
+            }
+        }
+        mock_client.post.return_value = mock_response
+        
         provider = AgentforceProvider(
             agent_id="0XxdM0000029q33SAA",
             instance_url="https://test.salesforce.com",
@@ -211,10 +221,22 @@ class TestAgentforceProvider:
         
         result = provider.generate_text("test prompt")
         
-        # Placeholder implementation returns informative message
-        assert "Agentforce Placeholder Response" in result
-        assert "0XxdM0000029q33SAA" in result
-        assert "test prompt" in result or "..." in result
+        # Should return the actual response text
+        assert result == "Real agent response from Salesforce"
+        
+        # Verify the API call was made correctly
+        mock_client.post.assert_called_once()
+        call_args = mock_client.post.call_args
+        
+        # Verify endpoint (should NOT include /actions)
+        assert "/execute" in call_args[0][0]
+        assert "/actions/execute" not in call_args[0][0]
+        
+        # Verify payload structure
+        payload = call_args[1]['json']
+        assert 'input' in payload
+        assert 'text' in payload['input']
+        assert payload['input']['text'] == "test prompt"
     
     @patch('app.llm.agentforce_provider.HTTPX_AVAILABLE', True)
     @patch('httpx.Client')
@@ -232,8 +254,18 @@ class TestAgentforceProvider:
             "token_type": "Bearer"
         }
         
+        # Mock successful Agentforce API response
+        mock_api_response = Mock()
+        mock_api_response.status_code = 200
+        mock_api_response.json.return_value = {
+            "output": {
+                "text": "OAuth authenticated agent response"
+            }
+        }
+        
         mock_client = Mock()
-        mock_client.post.return_value = mock_token_response
+        # First call is OAuth, second call is Agentforce API
+        mock_client.post.side_effect = [mock_token_response, mock_api_response]
         mock_client_class.return_value = mock_client
         
         provider = AgentforceProvider(
@@ -248,13 +280,20 @@ class TestAgentforceProvider:
         
         result = provider.generate_text("test prompt")
         
-        # Verify OAuth token request was made
-        mock_client.post.assert_called_once()
-        call_args = mock_client.post.call_args
-        assert "/services/oauth2/token" in call_args[0][0]
+        # Should get the actual response
+        assert result == "OAuth authenticated agent response"
         
-        # Placeholder implementation returns informative message
-        assert "Agentforce Placeholder Response" in result
+        # Verify both calls were made
+        assert mock_client.post.call_count == 2
+        
+        # First call should be OAuth token
+        first_call = mock_client.post.call_args_list[0]
+        assert "/services/oauth2/token" in first_call[0][0]
+        
+        # Second call should be Agentforce API
+        second_call = mock_client.post.call_args_list[1]
+        assert "/execute" in second_call[0][0]
+        assert "/actions/execute" not in second_call[0][0]
     
     @patch('app.llm.agentforce_provider.HTTPX_AVAILABLE', True)
     @patch('httpx.Client')
@@ -281,8 +320,11 @@ class TestAgentforceProvider:
             password="wrong-password"
         )
         
-        with pytest.raises(Exception, match="authentication failed"):
-            provider.generate_text("test prompt")
+        # Should return error message, not raise exception
+        result = provider.generate_text("test prompt")
+        
+        assert "[Agentforce Authentication Error]" in result
+        assert "Failed to get access token" in result
     
     @patch('app.llm.agentforce_provider.HTTPX_AVAILABLE', True)
     @patch('httpx.Client')
@@ -413,7 +455,17 @@ class TestAgentforceProvider:
         """Test chat method converts messages to prompt."""
         from app.llm.agentforce_provider import AgentforceProvider
         
+        # Mock successful Agentforce response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "output": {
+                "text": "I'm doing well, thank you!"
+            }
+        }
+        
         mock_client = Mock()
+        mock_client.post.return_value = mock_response
         mock_client_class.return_value = mock_client
         
         provider = AgentforceProvider(
@@ -432,9 +484,19 @@ class TestAgentforceProvider:
         
         result = provider.chat(messages)
         
-        # Should return placeholder response with prompt info
-        assert "Agentforce Placeholder Response" in result
-        assert "How are you?" in result or "..." in result
+        # Should return the actual response
+        assert result == "I'm doing well, thank you!"
+        
+        # Verify API was called
+        mock_client.post.assert_called_once()
+        
+        # Verify the prompt includes conversation context
+        call_args = mock_client.post.call_args
+        payload = call_args[1]['json']
+        assert 'input' in payload
+        assert 'text' in payload['input']
+        # The prompt should include the latest user message
+        assert "How are you?" in payload['input']['text']
     
     @patch('app.llm.agentforce_provider.HTTPX_AVAILABLE', True)
     @patch('httpx.Client')
@@ -469,8 +531,22 @@ class TestAgentforceProvider:
             "instance_url": "https://test.salesforce.com"
         }
         
+        # Mock successful Agentforce API response
+        mock_api_response = Mock()
+        mock_api_response.status_code = 200
+        mock_api_response.json.return_value = {
+            "output": {
+                "text": "Agent response"
+            }
+        }
+        
         mock_client = Mock()
-        mock_client.post.return_value = mock_token_response
+        # Set up responses: OAuth, API, API (second call reuses token)
+        mock_client.post.side_effect = [
+            mock_token_response,  # First OAuth call
+            mock_api_response,     # First Agentforce API call
+            mock_api_response      # Second Agentforce API call (token cached)
+        ]
         mock_client_class.return_value = mock_client
         
         provider = AgentforceProvider(
@@ -483,12 +559,20 @@ class TestAgentforceProvider:
             password="password123"
         )
         
-        # First call should authenticate
+        # First call should: authenticate + call API = 2 calls
         provider.generate_text("prompt 1")
-        assert mock_client.post.call_count == 1
+        assert mock_client.post.call_count == 2
         
-        # Second call should use cached token
+        # Verify first call was OAuth
+        first_call = mock_client.post.call_args_list[0]
+        assert "/services/oauth2/token" in first_call[0][0]
+        
+        # Second call should use cached token: only API call = 1 more call (total 3)
         provider.generate_text("prompt 2")
-        # Still only 1 call (token was cached)
-        assert mock_client.post.call_count == 1
+        assert mock_client.post.call_count == 3
+        
+        # Verify no additional OAuth calls (token was cached)
+        oauth_calls = [call for call in mock_client.post.call_args_list 
+                       if "/services/oauth2/token" in call[0][0]]
+        assert len(oauth_calls) == 1  # Only the first call
 

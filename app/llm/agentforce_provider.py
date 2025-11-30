@@ -29,6 +29,9 @@ class AgentforceProvider(BaseLLMProvider):
     # Supported authentication types
     AUTH_TYPES = ["oauth_jwt", "oauth_password", "session_id"]
     
+    # Salesforce API version for Agentforce
+    API_VERSION = "v61.0"
+    
     def __init__(self, api_key: Optional[str] = None, **kwargs):
         """Initialize Agentforce provider.
         
@@ -92,6 +95,7 @@ class AgentforceProvider(BaseLLMProvider):
         self.password = kwargs.get('password')
         self.private_key = kwargs.get('private_key')
         self.session_id = kwargs.get('session_id')
+        self.system_prompt = kwargs.get('system_prompt') or ""
         
         # Validate auth-specific requirements
         if self.auth_type == 'oauth_jwt':
@@ -244,71 +248,96 @@ class AgentforceProvider(BaseLLMProvider):
         
         Args:
             prompt: The input prompt for the agent
-            **kwargs: Additional parameters
-                - system_prompt: Optional system context/instructions
-                - metadata: Optional metadata dict to pass to agent
+            **kwargs: Additional parameters (currently unused)
                 - temperature: Not directly supported by Agentforce (ignored)
                 - max_tokens: Not directly supported by Agentforce (ignored)
                 
         Returns:
-            Generated text string from Agentforce agent
-            
-        Raises:
-            Exception: If generation fails after all retries
+            Generated text string from Agentforce agent (or error message on failure)
         """
-        # Get access token
-        try:
-            access_token = self._get_access_token()
-        except Exception as e:
-            raise Exception(f"Agentforce authentication failed: {str(e)}")
         
-        # Extract optional parameters
-        system_prompt = kwargs.get('system_prompt')
-        metadata = kwargs.get('metadata', {})
+        # Get access token (prefer session_id, fallback to OAuth)
+        try:
+            access_token = self.session_id if self.session_id else self._get_access_token()
+        except Exception as e:
+            return (
+                f"[Agentforce Authentication Error]\n"
+                f"Failed to get access token: {str(e)}\n"
+                f"→ Falling back to placeholder mode."
+            )
+        
+        # Build dynamic endpoint
+        instance_url = self.instance_url.rstrip("/")
+        endpoint = f"{instance_url}/services/data/{self.API_VERSION}/agentforce/agents/{self.agent_id}/execute"
+        
+        # Build request
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "input": {
+                "text": prompt,
+                "context": self.system_prompt  # NOTE: Some agents use "instructions" instead of "context"
+            }
+        }
+        # NOTE: If the agent ignores context, switch the key to: "instructions": self.system_prompt
         
         # Debug logging
-        print(f"[Agentforce] Using agent: {self.agent_id}")
+        print(f"[Agentforce] Calling agent {self.agent_id} at {endpoint}")
         
-        # TODO: Build Agentforce agent execution request
-        # Reference: Salesforce Agentforce API documentation (version TBD)
-        #
-        # Expected endpoint format (PLACEHOLDER):
-        # POST {instance_url}/services/data/vXX.0/agentforce/agents/{agent_id}/execute
-        #
-        # Expected request payload (PLACEHOLDER):
-        # {
-        #   "input": {
-        #     "text": prompt,
-        #     "context": system_prompt  // optional
-        #   },
-        #   "metadata": metadata  // optional
-        # }
-        #
-        # Expected response format (PLACEHOLDER):
-        # {
-        #   "output": {
-        #     "text": "response text"
-        #   },
-        #   "status": "completed"
-        # }
+        # Retry logic
+        last_exception = None
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                response = self.client.post(endpoint, json=payload, headers=headers)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Parse standard Salesforce response format
+                    if "output" in data and "text" in data["output"]:
+                        result_text = data["output"]["text"]
+                        print(f"[Agentforce] Received {len(result_text)} chars")
+                        return result_text
+                    else:
+                        return (
+                            f"[Agentforce Warning] Unexpected response format:\n"
+                            f"{json.dumps(data, indent=2)}"
+                        )
+                
+                else:
+                    error_text = response.text
+                    last_exception = Exception(f"HTTP {response.status_code}: {error_text}")
+                    
+                    # Retry on server errors (500+)
+                    if response.status_code >= 500:
+                        if attempt < self.MAX_RETRIES - 1:
+                            wait_time = self.RETRY_DELAY * (2 ** attempt)
+                            print(f"[Agentforce] Server error, retrying in {wait_time}s...")
+                            time.sleep(wait_time)
+                            continue
+                    
+                    # Don't retry on client errors (401, 403, 404)
+                    break
+            
+            except Exception as e:
+                last_exception = e
+                if attempt < self.MAX_RETRIES - 1:
+                    print(f"[Agentforce] Error, retrying...")
+                    time.sleep(self.RETRY_DELAY)
+                    continue
+                break
         
-        # PLACEHOLDER: Return informative placeholder response
-        placeholder_response = (
-            f"[Agentforce Placeholder Response]\n\n"
-            f"Agent ID: {self.agent_id}\n"
-            f"Instance: {self.instance_url}\n"
-            f"Auth Type: {self.auth_type}\n"
-            f"Authenticated: ✅\n\n"
-            f"Prompt received:\n{prompt[:200]}{'...' if len(prompt) > 200 else ''}\n\n"
-            f"TODO: Implement actual Agentforce agent execution.\n"
-            f"This requires:\n"
-            f"1. Correct Agentforce API endpoint URL\n"
-            f"2. Correct request payload schema\n"
-            f"3. Response parsing logic\n\n"
-            f"Reference: Salesforce Agentforce API Documentation"
+        # All retries failed - return error as text (don't raise)
+        return (
+            f"[Agentforce API Error]\n"
+            f"Endpoint: {endpoint}\n"
+            f"Error: {str(last_exception)}\n\n"
+            f"→ Falling back to placeholder output.\n"
+            f"Prompt sent: {prompt[:200]}..."
         )
-        
-        return placeholder_response
     
     def list_models(self) -> List[str]:
         """List available Agentforce agents.

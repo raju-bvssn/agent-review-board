@@ -103,6 +103,7 @@ def render():
                     password=st.session_state.llm_config.get('password'),
                     private_key=st.session_state.llm_config.get('private_key'),
                     session_id=st.session_state.llm_config.get('session_id'),
+                    system_prompt=st.session_state.llm_config.get('system_prompt'),
                 )
             else:
                 # For other providers, use api_key

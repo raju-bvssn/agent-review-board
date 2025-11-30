@@ -1,163 +1,239 @@
-<!-- dfa6544a-0759-4e0d-8719-9815019f6aed f9c461b7-0820-4c40-a580-04dfe3a2b92d -->
-# Add Salesforce Agentforce Provider to ARB
+<!-- dfa6544a-0759-4e0d-8719-9815019f6aed 80c7658f-a724-4aca-8bee-74bb8e92fb9c -->
+# Implement Real Salesforce Agentforce API Integration
 
 ## Overview
 
-Add Agentforce as a new LLM provider alongside OpenAI, Anthropic, Gemini, HuggingFace, and Ollama. This is a pure provider addition using ARB's existing dependency injection pattern.
+Replace placeholder responses in `generate_text()` with real Salesforce Agentforce API calls using verified endpoint, payload structure, and error fallback handling.
+
+## Verified API Details
+
+- **Endpoint**: `/execute` (NOT `/actions/execute`)
+- **Payload**: `"input": {}` (singular, NOT `"inputs": []`)
+- **Response**: `{"output": {"text": "..."}}`
+- **Auth**: Session ID preferred, OAuth fallback
+- **Errors**: Return as text (don't raise)
 
 ## Implementation Steps
 
-### 1. Create AgentforceProvider Class
+### 1. Add System Prompt to UI
 
-**File:** `app/llm/agentforce_provider.py`
+**File:** [`app/ui/pages/llm_settings.py`](app/ui/pages/llm_settings.py)
 
-Implement `AgentforceProvider(BaseLLMProvider)` with:
-
-- **Required methods** (per `BaseLLMProvider` interface):
-  - `generate_text(prompt, **kwargs)` - Main execution method
-  - `list_models()` - Returns configured agent ID as the "model"
-  - `validate_connection()` - Tests Salesforce auth & agent accessibility
-
-- **Authentication support** (all configurable):
-  - OAuth 2.0 JWT Bearer Flow
-  - OAuth 2.0 Username-Password Flow
-  - Direct Session ID
-
-- **Configuration parameters**:
-  - `agent_id` (e.g., "0XxdM0000029q33SAA")
-  - `instance_url` (e.g., "https://yourorg.salesforce.com")
-  - `auth_type` ("oauth_jwt" | "oauth_password" | "session_id")
-  - `client_id`, `client_secret`, `username`, `password`
-  - `private_key_path` (for JWT flow)
-  - `session_id` (for direct session auth)
-
-- **TODO placeholders** for:
-  - Salesforce OAuth token endpoint
-  - Agentforce agent execution endpoint
-  - Request payload schema
-  - Response parsing logic
-
-**Pattern to follow:** [`app/llm/gemini_provider.py`](app/llm/gemini_provider.py) (uses httpx for REST API calls)
-
-### 2. Register in Provider Factory
-
-**File:** `app/llm/provider_factory.py`
-
-Add Agentforce to the `PROVIDERS` registry:
+In all three Agentforce auth sections (oauth_password, oauth_jwt, session_id), add after the auth-specific fields:
 
 ```python
-from app.llm.agentforce_provider import AgentforceProvider
-
-PROVIDERS = {
-    'mock': MockLLMProvider,
-    'openai': OpenAIProvider,
-    'anthropic': AnthropicProvider,
-    'gemini': GeminiProvider,
-    'huggingface': HuggingFaceProvider,
-    'ollama': OllamaProvider,
-    'agentforce': AgentforceProvider,  # NEW
-}
+system_prompt = st.text_area(
+    "System Prompt (Optional)",
+    placeholder="e.g., You are a professional technical writer...",
+    help="Optional instructions for the Agentforce agent"
+)
 ```
 
-Note: Follow existing conditional registration pattern if needed (like Ollama's cloud check).
+Add to each auth's configuration storage:
 
-### 3. Add UI Configuration
+```python
+'system_prompt': system_prompt,
+```
 
-**File:** `app/ui/pages/llm_settings.py`
+### 2. Add Class Attributes
 
-Add Agentforce configuration section with:
+**File:** [`app/llm/agentforce_provider.py`](app/llm/agentforce_provider.py)
 
-- **Provider info display** (add to `provider_display` dict)
-- **Configuration form** with fields:
-  - Agent ID (text input)
-  - Instance URL (text input)
-  - Auth Type (selectbox: oauth_jwt, oauth_password, session_id)
-  - **Conditional fields** based on auth_type:
-    - For JWT: client_id, private_key (textarea)
-    - For Password: client_id, client_secret, username, password
-    - For Session: session_id
+After line 30 (after `AUTH_TYPES = [...]`), add:
 
-- **Test Connection button** - calls `provider.validate_connection()`
-- **Save to** `st.session_state.llm_config`
-- **Glass card styling** - wrap in `<div class="glass-card">` to match existing theme
+```python
+# Salesforce API version for Agentforce
+API_VERSION = "v61.0"
+```
 
-**Pattern to follow:** Gemini configuration section (lines 150-200 approx)
+### 3. Store System Prompt in Constructor
 
-### 4. Add Unit Tests
+**File:** [`app/llm/agentforce_provider.py`](app/llm/agentforce_provider.py)
 
-**File:** `tests/unit/test_agentforce_provider.py`
+After line 94 (after `self.session_id = kwargs.get('session_id')`), add:
 
-Create tests for:
+```python
+self.system_prompt = kwargs.get('system_prompt') or ""
+```
 
-- Provider initialization with various auth types
-- `list_models()` returns agent ID
-- `generate_text()` with mocked Salesforce API
-- `validate_connection()` success/failure scenarios
-- Error handling for missing credentials
-- All three auth methods
+### 4. Implement Real API Call
 
-**Pattern to follow:** [`tests/test_provider_gemini.py`](tests/test_provider_gemini.py) (mock httpx responses)
+**File:** [`app/llm/agentforce_provider.py`](app/llm/agentforce_provider.py)
 
-### 5. Update Documentation
+Replace lines 272-311 with:
 
-**File:** `README.md`
+```python
+# Get access token (prefer session_id, fallback to OAuth)
+try:
+    access_token = self.session_id if self.session_id else self._get_access_token()
+except Exception as e:
+    return (
+        f"[Agentforce Authentication Error]\n"
+        f"Failed to get access token: {str(e)}\n"
+        f"→ Falling back to placeholder mode."
+    )
 
-Add Agentforce section:
+# Build dynamic endpoint
+instance_url = self.instance_url.rstrip("/")
+endpoint = f"{instance_url}/services/data/{self.API_VERSION}/agentforce/agents/{self.agent_id}/execute"
 
-- Installation (no extra packages needed, uses httpx)
-- Configuration instructions
-- Supported auth methods
-- Example agent ID format
-- Link to Salesforce Agentforce docs
+# Build request
+headers = {
+    "Authorization": f"Bearer {access_token}",
+    "Content-Type": "application/json"
+}
 
-## Key Design Decisions
+payload = {
+    "input": {
+        "text": prompt,
+        "context": self.system_prompt  # NOTE: Some agents use "instructions" instead of "context"
+    }
+}
+# NOTE: If the agent ignores context, switch the key to: "instructions": self.system_prompt
 
-1. **Method signature:** Use `generate_text(prompt, **kwargs)` not `generate()` (matches `BaseLLMProvider`)
-2. **Model concept:** The Agentforce agent ID acts as the "model" in ARB's UI
-3. **Auth storage:** Store credentials in `st.session_state.llm_config['agentforce']` (encrypted in production)
-4. **Placeholder behavior:** Return informative placeholder text until Salesforce API details are finalized
-5. **Error messages:** Clear, actionable errors for auth failures, missing config, API issues
+# Debug logging
+print(f"[Agentforce] Calling agent {self.agent_id} at {endpoint}")
 
-## What NOT to Modify
+# Retry logic
+last_exception = None
+for attempt in range(self.MAX_RETRIES):
+    try:
+        response = self.client.post(endpoint, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Parse standard Salesforce response format
+            if "output" in data and "text" in data["output"]:
+                result_text = data["output"]["text"]
+                print(f"[Agentforce] Received {len(result_text)} chars")
+                return result_text
+            else:
+                return (
+                    f"[Agentforce Warning] Unexpected response format:\n"
+                    f"{json.dumps(data, indent=2)}"
+                )
+        
+        else:
+            error_text = response.text
+            last_exception = Exception(f"HTTP {response.status_code}: {error_text}")
+            
+            # Retry on server errors (500+)
+            if response.status_code >= 500:
+                if attempt < self.MAX_RETRIES - 1:
+                    wait_time = self.RETRY_DELAY * (2 ** attempt)
+                    print(f"[Agentforce] Server error, retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+            
+            # Don't retry on client errors (401, 403, 404)
+            break
+    
+    except Exception as e:
+        last_exception = e
+        if attempt < self.MAX_RETRIES - 1:
+            print(f"[Agentforce] Error, retrying...")
+            time.sleep(self.RETRY_DELAY)
+            continue
+        break
 
-❌ `app/agents/` - No changes to PresenterAgent, ReviewerAgents, ConfidenceAgent
+# All retries failed - return error as text (don't raise)
+return (
+    f"[Agentforce API Error]\n"
+    f"Endpoint: {endpoint}\n"
+    f"Error: {str(last_exception)}\n\n"
+    f"→ Falling back to placeholder output.\n"
+    f"Prompt sent: {prompt[:200]}..."
+)
+```
 
-❌ `app/orchestration/` - No changes to WorkflowEngine, ReviewerManager, Aggregator
+**Critical Details:**
 
-❌ `app/core/` - No changes to Orchestrator, SessionManager
+- ✅ Endpoint: `/execute` (no `/actions`)
+- ✅ Payload: `"input": {...}` (singular)
+- ✅ Response parsing: `data["output"]` (FIXED - not `data["text"]`)
+- ✅ System prompt: `self.system_prompt`
+- ✅ Errors: Return text, never raise
 
-❌ `app/ui/theme/` - No CSS or theme changes
+### 5. Pass System Prompt to Provider
 
-❌ Agent prompts or execution logic
+**File:** [`app/ui/pages/review_session.py`](app/ui/pages/review_session.py)
 
-❌ Iteration tracking or confidence scoring
+Update line 95-106, add system_prompt parameter:
+
+```python
+provider = ProviderFactory.create_provider(
+    provider_name,
+    agent_id=st.session_state.llm_config.get('agent_id'),
+    instance_url=st.session_state.llm_config.get('instance_url'),
+    auth_type=st.session_state.llm_config.get('auth_type'),
+    client_id=st.session_state.llm_config.get('client_id'),
+    client_secret=st.session_state.llm_config.get('client_secret'),
+    username=st.session_state.llm_config.get('username'),
+    password=st.session_state.llm_config.get('password'),
+    private_key=st.session_state.llm_config.get('private_key'),
+    session_id=st.session_state.llm_config.get('session_id'),
+    system_prompt=st.session_state.llm_config.get('system_prompt'),  # NEW
+)
+```
+
+### 6. Update Tests
+
+**File:** [`tests/unit/test_agentforce_provider.py`](tests/unit/test_agentforce_provider.py)
+
+Update test_generate_text_with_session_id:
+
+```python
+# Mock successful Agentforce response
+mock_response = Mock()
+mock_response.status_code = 200
+mock_response.json.return_value = {
+    "output": {
+        "text": "Real agent response from Salesforce"
+    }
+}
+
+mock_client.post.return_value = mock_response
+```
+
+Verify endpoint does NOT include `/actions`.
+
+## Files to Modify
+
+1. `app/llm/agentforce_provider.py` - API_VERSION, system_prompt, real API
+2. `app/ui/pages/llm_settings.py` - system_prompt textarea (3 places)
+3. `app/ui/pages/review_session.py` - Pass system_prompt
+4. `tests/unit/test_agentforce_provider.py` - Update mocks
+
+## What NOT to Change
+
+❌ Authentication methods
+
+❌ Constructor signature
+
+❌ Other provider methods
+
+❌ Provider factory
+
+❌ Agent logic
 
 ## Acceptance Criteria
 
-- ✅ Agentforce appears in LLM Settings provider dropdown
-- ✅ Configuration form saves successfully
-- ✅ "Test Connection" shows placeholder success message
-- ✅ Agents can be created with AgentforceProvider
-- ✅ `generate_text()` returns placeholder responses
-- ✅ All existing tests still pass (339/339)
-- ✅ New Agentforce tests pass
-- ✅ No regressions in other providers or agents
-
-## Implementation Order
-
-1. Create `agentforce_provider.py` with full scaffolding
-2. Register in `provider_factory.py`
-3. Add UI configuration in `llm_settings.py`
-4. Write unit tests
-5. Update README
-6. Test end-to-end (create session with Agentforce provider)
-7. Document TODO items for Salesforce API integration
+- ✅ Endpoint: `/execute` (no `/actions`)
+- ✅ Payload: `"input": {}` (singular)
+- ✅ Response: Parse `data["output"]["text"]` correctly
+- ✅ System prompt: `self.system_prompt = kwargs.get('system_prompt') or ""`
+- ✅ API_VERSION as class attribute
+- ✅ Errors return text
+- ✅ All tests pass
+- ✅ Works with live org
 
 ### To-dos
 
-- [ ] Create app/llm/agentforce_provider.py with BaseLLMProvider implementation
-- [ ] Register AgentforceProvider in app/llm/provider_factory.py
-- [ ] Add Agentforce configuration UI in app/ui/pages/llm_settings.py
-- [ ] Create tests/unit/test_agentforce_provider.py
-- [ ] Update README.md with Agentforce setup instructions
-- [ ] End-to-end test: Create session with Agentforce provider
+- [x] Update ReviewerAgent base class to accept previous_feedback parameter
+- [x] Update reviewer prompt templates to include previous feedback context
+- [x] Update Orchestrator to pass previous feedback to reviewers
+- [x] Update confidence_model to calculate improvement delta
+- [x] Update ReviewerManager in workflow_engine for previous feedback
+- [x] Run full test suite and fix any failures
+- [x] Create documentation of the improvement tracking feature

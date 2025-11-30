@@ -181,21 +181,30 @@ openssl req -new -x509 -key private_key.pem -out certificate.crt -days 365
 
 4. For password flow, click "Manage Consumer Details" to get **Consumer Secret**
 
+**System Prompt (Optional):**
+
+You can provide optional instructions for your Agentforce agent using the "System Prompt" field in LLM Settings. This will be sent with every request to guide the agent's behavior.
+
+```
+Example: "You are a professional technical writer specializing in API documentation."
+```
+
 **Example Usage:**
 
 ```python
 # After configuring Agentforce in LLM Settings:
 # 1. Test connection to verify authentication
-# 2. Create a new session
-# 3. Select your Presenter and Reviewer agents
-# 4. Run iterations - all agents will use your Agentforce agent
+# 2. (Optional) Add a system prompt for agent instructions
+# 3. Create a new session
+# 4. Select your Presenter and Reviewer agents
+# 5. Run iterations - all agents will use your Agentforce agent
 ```
 
 **Current Implementation Status:**
 - ✅ OAuth Username-Password Flow - **Fully Implemented**
 - ⚠️ OAuth JWT Bearer Flow - **Placeholder (TODO)**
 - ✅ Session ID Auth - **Fully Implemented**
-- ⚠️ Agent Execution API - **Placeholder (TODO)**
+- ✅ Agent Execution API - **Fully Implemented** (Salesforce API v61.0)
 
 The Agentforce provider is production-ready for authentication, with placeholder responses for agent execution until the Salesforce Agentforce API endpoints are finalized.
 

@@ -346,6 +346,12 @@ def render():
                 "Get your token: Profile → Settings → Reset My Security Token"
             )
             
+            system_prompt = st.text_area(
+                "System Prompt (Optional)",
+                placeholder="e.g., You are a professional technical writer...",
+                help="Optional instructions for the Agentforce agent"
+            )
+            
             # Store configuration
             if agent_id and instance_url and client_id and client_secret and username and password:
                 if 'llm_config' not in st.session_state:
@@ -360,6 +366,7 @@ def render():
                     'client_secret': client_secret,
                     'username': username,
                     'password': password,
+                    'system_prompt': system_prompt,
                 })
             else:
                 if not agent_id or not instance_url:
@@ -398,6 +405,12 @@ def render():
                 help="Your RSA private key in PEM format"
             )
             
+            system_prompt = st.text_area(
+                "System Prompt (Optional)",
+                placeholder="e.g., You are a professional technical writer...",
+                help="Optional instructions for the Agentforce agent"
+            )
+            
             # Store configuration
             if agent_id and instance_url and client_id and username and private_key:
                 if 'llm_config' not in st.session_state:
@@ -411,6 +424,7 @@ def render():
                     'client_id': client_id,
                     'username': username,
                     'private_key': private_key,
+                    'system_prompt': system_prompt,
                 })
                 
                 st.info("⚠️ JWT authentication implementation is pending (TODO)")
@@ -431,6 +445,12 @@ def render():
                 help="Get session ID from browser cookies or API login response"
             )
             
+            system_prompt = st.text_area(
+                "System Prompt (Optional)",
+                placeholder="e.g., You are a professional technical writer...",
+                help="Optional instructions for the Agentforce agent"
+            )
+            
             # Store configuration
             if agent_id and instance_url and session_id:
                 if 'llm_config' not in st.session_state:
@@ -442,6 +462,7 @@ def render():
                     'instance_url': instance_url,
                     'auth_type': auth_type,
                     'session_id': session_id,
+                    'system_prompt': system_prompt,
                 })
             else:
                 st.warning("⚠️ Agent ID, Instance URL, and Session ID are required")
