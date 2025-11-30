@@ -57,7 +57,8 @@ def render():
         "anthropic": "Anthropic (Claude 3.5 Sonnet) - Paid",
         "gemini": "🆓 Google Gemini (gemini-2.5-flash FREE)",
         "huggingface": "🆓 HuggingFace (falcon-7b FREE)",
-        "ollama": "🆓 Ollama (Local - llama3, mistral, phi3, etc.)"
+        "ollama": "🆓 Ollama (Local - llama3, mistral, phi3, etc.)",
+        "agentforce": "⚡ Salesforce Agentforce (Enterprise)"
     }
     
     provider_options = [provider_display.get(p, p) for p in available_providers]
@@ -265,6 +266,175 @@ def render():
         st.success("✅ Mock Provider selected - No API key required (for testing)")
         st.caption("The Mock Provider returns deterministic responses for testing purposes")
     
+    # AGENTFORCE CONFIGURATION
+    elif selected_provider == 'agentforce':
+        st.markdown("""
+        <h3 style='color: rgba(0, 176, 255, 0.95);
+                   font-size: 1.5rem;
+                   font-weight: 600;
+                   margin-bottom: 1rem;'>
+            ⚡ Salesforce Agentforce Configuration
+        </h3>
+        """, unsafe_allow_html=True)
+        
+        st.info(
+            "**Configure your Salesforce Agentforce agent**\n\n"
+            "This provider connects to Salesforce Agentforce agents in your Salesforce org. "
+            "You'll need a Salesforce Connected App with appropriate permissions."
+        )
+        
+        # Agent ID (required)
+        agent_id = st.text_input(
+            "Agentforce Agent ID",
+            placeholder="e.g., 0XxdM0000029q33SAA",
+            help="The ID of your Agentforce agent from Salesforce"
+        )
+        
+        # Instance URL (required)
+        instance_url = st.text_input(
+            "Salesforce Instance URL",
+            placeholder="e.g., https://yourorg.my.salesforce.com",
+            help="Your Salesforce instance URL (without trailing slash)"
+        )
+        
+        # Authentication method
+        auth_type = st.selectbox(
+            "Authentication Method",
+            ["oauth_password", "oauth_jwt", "session_id"],
+            help="Choose your Salesforce authentication method"
+        )
+        
+        st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+        
+        # Conditional fields based on auth type
+        if auth_type == "oauth_password":
+            st.markdown("**OAuth 2.0 Username-Password Flow**")
+            st.caption("Requires Connected App credentials and user credentials")
+            
+            client_id = st.text_input(
+                "Client ID (Consumer Key)",
+                type="password",
+                placeholder="Enter Connected App Consumer Key"
+            )
+            
+            client_secret = st.text_input(
+                "Client Secret (Consumer Secret)",
+                type="password",
+                placeholder="Enter Connected App Consumer Secret"
+            )
+            
+            username = st.text_input(
+                "Salesforce Username",
+                placeholder="user@example.com"
+            )
+            
+            password = st.text_input(
+                "Salesforce Password",
+                type="password",
+                placeholder="Password + Security Token (if required)",
+                help="If your org requires a security token, append it to your password"
+            )
+            
+            # Store configuration
+            if agent_id and instance_url and client_id and client_secret and username and password:
+                if 'llm_config' not in st.session_state:
+                    st.session_state.llm_config = {}
+                
+                st.session_state.llm_config.update({
+                    'provider': 'agentforce',
+                    'agent_id': agent_id,
+                    'instance_url': instance_url,
+                    'auth_type': auth_type,
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'username': username,
+                    'password': password,
+                })
+            else:
+                if not agent_id or not instance_url:
+                    st.warning("⚠️ Agent ID and Instance URL are required")
+                elif not all([client_id, client_secret, username, password]):
+                    st.warning("⚠️ All OAuth credentials are required")
+        
+        elif auth_type == "oauth_jwt":
+            st.markdown("**OAuth 2.0 JWT Bearer Flow**")
+            st.caption("Requires Connected App and private key for server-to-server auth")
+            
+            st.warning(
+                "⚠️ **JWT authentication requires additional setup:**\n\n"
+                "1. Create a Connected App with JWT enabled\n"
+                "2. Upload your certificate to the Connected App\n"
+                "3. Generate a private key (PEM format)\n"
+                "4. Pre-authorize your user or profile"
+            )
+            
+            client_id = st.text_input(
+                "Client ID (Consumer Key)",
+                type="password",
+                placeholder="Enter Connected App Consumer Key"
+            )
+            
+            username = st.text_input(
+                "Salesforce Username",
+                placeholder="user@example.com",
+                help="The user to authenticate as"
+            )
+            
+            private_key = st.text_area(
+                "Private Key (PEM Format)",
+                placeholder="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+                height=200,
+                help="Your RSA private key in PEM format"
+            )
+            
+            # Store configuration
+            if agent_id and instance_url and client_id and username and private_key:
+                if 'llm_config' not in st.session_state:
+                    st.session_state.llm_config = {}
+                
+                st.session_state.llm_config.update({
+                    'provider': 'agentforce',
+                    'agent_id': agent_id,
+                    'instance_url': instance_url,
+                    'auth_type': auth_type,
+                    'client_id': client_id,
+                    'username': username,
+                    'private_key': private_key,
+                })
+                
+                st.info("⚠️ JWT authentication implementation is pending (TODO)")
+            else:
+                if not agent_id or not instance_url:
+                    st.warning("⚠️ Agent ID and Instance URL are required")
+                elif not all([client_id, username, private_key]):
+                    st.warning("⚠️ All JWT credentials are required")
+        
+        elif auth_type == "session_id":
+            st.markdown("**Direct Session ID**")
+            st.caption("Use an existing Salesforce session ID (for testing/development)")
+            
+            session_id = st.text_input(
+                "Salesforce Session ID",
+                type="password",
+                placeholder="Enter a valid Salesforce session ID",
+                help="Get session ID from browser cookies or API login response"
+            )
+            
+            # Store configuration
+            if agent_id and instance_url and session_id:
+                if 'llm_config' not in st.session_state:
+                    st.session_state.llm_config = {}
+                
+                st.session_state.llm_config.update({
+                    'provider': 'agentforce',
+                    'agent_id': agent_id,
+                    'instance_url': instance_url,
+                    'auth_type': auth_type,
+                    'session_id': session_id,
+                })
+            else:
+                st.warning("⚠️ Agent ID, Instance URL, and Session ID are required")
+    
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
@@ -347,10 +517,30 @@ def render():
         with st.spinner("Testing connection..."):
             try:
                 # Create provider instance
-                provider = ProviderFactory.create_provider(
-                    selected_provider,
-                    api_key=api_key if api_key else None
-                )
+                # For Agentforce, pass config from session_state instead of api_key
+                if selected_provider == 'agentforce':
+                    if 'llm_config' in st.session_state and st.session_state.llm_config.get('provider') == 'agentforce':
+                        agentforce_config = st.session_state.llm_config
+                        provider = ProviderFactory.create_provider(
+                            selected_provider,
+                            agent_id=agentforce_config.get('agent_id'),
+                            instance_url=agentforce_config.get('instance_url'),
+                            auth_type=agentforce_config.get('auth_type'),
+                            client_id=agentforce_config.get('client_id'),
+                            client_secret=agentforce_config.get('client_secret'),
+                            username=agentforce_config.get('username'),
+                            password=agentforce_config.get('password'),
+                            private_key=agentforce_config.get('private_key'),
+                            session_id=agentforce_config.get('session_id'),
+                        )
+                    else:
+                        st.error("❌ Please configure Agentforce credentials first")
+                        st.stop()
+                else:
+                    provider = ProviderFactory.create_provider(
+                        selected_provider,
+                        api_key=api_key if api_key else None
+                    )
                 
                 # Test connection
                 is_valid = provider.validate_connection()

@@ -8,6 +8,7 @@ from app.llm.anthropic_provider import AnthropicProvider
 from app.llm.gemini_provider import GeminiProvider
 from app.llm.huggingface_provider import HuggingFaceProvider
 from app.llm.ollama_provider import OllamaProvider
+from app.llm.agentforce_provider import AgentforceProvider
 from app.utils.env import is_cloud
 
 
@@ -23,6 +24,7 @@ class ProviderFactory:
     - Gemini (FREE tier available - gemini-1.5-flash)
     - HuggingFace (FREE models available)
     - Ollama (FREE local models - LOCAL ONLY, not available in cloud)
+    - Agentforce (Salesforce Agentforce agents)
     - Mock (Testing only)
     """
     
@@ -34,6 +36,7 @@ class ProviderFactory:
         'anthropic': AnthropicProvider,
         'gemini': GeminiProvider,
         'huggingface': HuggingFaceProvider,
+        'agentforce': AgentforceProvider,
     }
     
     # Add Ollama only in local environment (not supported in Streamlit Cloud)
@@ -51,8 +54,8 @@ class ProviderFactory:
         
         Args:
             provider_name: Name of the provider
-                ('mock', 'openai', 'anthropic', 'gemini', 'huggingface', 'ollama')
-            api_key: API key for the provider (not required for mock/ollama)
+                ('mock', 'openai', 'anthropic', 'gemini', 'huggingface', 'ollama', 'agentforce')
+            api_key: API key for the provider (not required for mock/ollama/agentforce)
             **kwargs: Additional provider-specific configuration
             
         Returns:
@@ -73,7 +76,8 @@ class ProviderFactory:
         provider_class = cls.PROVIDERS[provider_name]
         
         # Providers that don't require API key
-        if provider_name in ('mock', 'ollama'):
+        # Agentforce uses its own auth (OAuth/Session ID), not API key
+        if provider_name in ('mock', 'ollama', 'agentforce'):
             return provider_class(**kwargs)
         
         # Real providers require API key
@@ -113,7 +117,7 @@ class ProviderFactory:
         Returns:
             True if API key required, False otherwise
         """
-        no_key_providers = ['mock']
+        no_key_providers = ['mock', 'agentforce']
         if not is_cloud():
             no_key_providers.append('ollama')
         
@@ -187,6 +191,14 @@ class ProviderFactory:
                 'requires_key': False,
                 'local': True,
                 'cloud_available': False,
+            },
+            'agentforce': {
+                'name': 'Salesforce Agentforce',
+                'description': 'Salesforce Agentforce agents (requires Salesforce org)',
+                'free': False,  # Depends on Salesforce org/licensing
+                'requires_key': False,  # Uses OAuth or Session ID
+                'local': False,
+                'cloud_available': True,
             },
         }
         

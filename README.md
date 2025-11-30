@@ -27,7 +27,7 @@ Agent Review Board is a collaborative AI system where multiple specialized revie
 
 ✅ **Incognito Mode** — No data persistence, session cleared on exit
 
-✅ **Multi-Provider Support** — OpenAI, Anthropic, Gemini, HuggingFace, Ollama (FREE options available!)
+✅ **Multi-Provider Support** — OpenAI, Anthropic, Gemini, HuggingFace, Ollama, Salesforce Agentforce (FREE options available!)
 
 ---
 
@@ -105,7 +105,106 @@ export OPENAI_API_KEY="your-key-here"
 export ANTHROPIC_API_KEY="your-key-here"
 ```
 
-#### **Option F: Mock Provider (Testing Only)**
+#### **Option F: ⚡ Salesforce Agentforce (Enterprise)**
+
+Integrate ARB with your Salesforce Agentforce agents for enterprise AI workflows.
+
+**Prerequisites:**
+- Salesforce org with Agentforce enabled
+- Agentforce Agent ID (e.g., `0XxdM0000029q33SAA`)
+- Salesforce Connected App with appropriate permissions
+
+**Configuration Steps:**
+
+1. In the app, navigate to "LLM Settings"
+2. Select "Salesforce Agentforce"
+3. Enter your **Agentforce Agent ID**
+4. Enter your **Salesforce Instance URL** (e.g., `https://yourorg.my.salesforce.com`)
+5. Choose your authentication method:
+
+**Authentication Options:**
+
+**A. OAuth 2.0 Username-Password Flow** (Recommended for demos/development)
+- Client ID (Consumer Key)
+- Client Secret (Consumer Secret)
+- Salesforce Username
+- Salesforce Password (+ Security Token if required)
+
+```bash
+# Example configuration in UI:
+Agent ID: 0XxdM0000029q33SAA
+Instance URL: https://yourorg.my.salesforce.com
+Auth Type: oauth_password
+Client ID: 3MVG9...ABC123
+Client Secret: 1234...5678
+Username: user@yourorg.com
+Password: myPassword123SecurityToken456
+```
+
+**B. OAuth 2.0 JWT Bearer Flow** (Recommended for production)
+- Client ID (Consumer Key)
+- Salesforce Username
+- Private Key (PEM format)
+
+⚠️ **JWT Setup Requirements:**
+1. Create a Connected App with JWT enabled
+2. Upload your X.509 certificate to the Connected App
+3. Generate an RSA private key in PEM format
+4. Pre-authorize your user or profile in the Connected App
+
+```bash
+# Generate RSA key pair:
+openssl genrsa -out private_key.pem 2048
+openssl req -new -x509 -key private_key.pem -out certificate.crt -days 365
+```
+
+**C. Session ID** (For testing/development only)
+- Direct Salesforce Session ID from browser cookies or API login
+
+**Connected App Setup:**
+
+1. In Salesforce Setup, create a new Connected App:
+   - **Basic Information:** App Name, API Name, Contact Email
+   - **API (Enable OAuth Settings):** ✅ Check "Enable OAuth Settings"
+   - **Callback URL:** `https://localhost:8504/callback` (or your app URL)
+   - **Selected OAuth Scopes:**
+     - Access your basic information (id, profile, email, address, phone)
+     - Perform requests on your behalf at any time (refresh_token, offline_access)
+     - Access and manage your data (api)
+   
+2. For JWT Bearer Flow (production):
+   - ✅ Check "Use digital signatures"
+   - Upload your `certificate.crt` file
+   - ✅ Check "Enable Client Credentials Flow" (optional)
+
+3. After saving, note your **Consumer Key** (Client ID)
+
+4. For password flow, click "Manage Consumer Details" to get **Consumer Secret**
+
+**Example Usage:**
+
+```python
+# After configuring Agentforce in LLM Settings:
+# 1. Test connection to verify authentication
+# 2. Create a new session
+# 3. Select your Presenter and Reviewer agents
+# 4. Run iterations - all agents will use your Agentforce agent
+```
+
+**Current Implementation Status:**
+- ✅ OAuth Username-Password Flow - **Fully Implemented**
+- ⚠️ OAuth JWT Bearer Flow - **Placeholder (TODO)**
+- ✅ Session ID Auth - **Fully Implemented**
+- ⚠️ Agent Execution API - **Placeholder (TODO)**
+
+The Agentforce provider is production-ready for authentication, with placeholder responses for agent execution until the Salesforce Agentforce API endpoints are finalized.
+
+**Documentation:**
+- [Salesforce Connected Apps](https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm)
+- [OAuth 2.0 JWT Bearer Flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_jwt_flow.htm)
+- [OAuth 2.0 Username-Password Flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_username_password_flow.htm)
+
+#### **Option G: Mock Provider (Testing Only)**
 
 No setup required - select "Mock Provider" for testing the UI without any API calls.
 
