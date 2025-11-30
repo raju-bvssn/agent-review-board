@@ -293,8 +293,14 @@ def render():
         # Instance URL (required)
         instance_url = st.text_input(
             "Salesforce Instance URL",
-            placeholder="e.g., https://yourorg.my.salesforce.com",
-            help="Your Salesforce instance URL (without trailing slash)"
+            value="https://login.salesforce.com",
+            placeholder="e.g., https://login.salesforce.com",
+            help="For OAuth authentication, use https://login.salesforce.com (default)"
+        )
+        
+        st.caption(
+            "💡 **Tip:** Use `https://login.salesforce.com` for standard authentication. "
+            "Only change this if you have a custom My Domain URL."
         )
         
         # Authentication method
@@ -331,8 +337,13 @@ def render():
             password = st.text_input(
                 "Salesforce Password",
                 type="password",
-                placeholder="Password + Security Token (if required)",
-                help="If your org requires a security token, append it to your password"
+                placeholder="Password + Security Token",
+                help="⚠️ IMPORTANT: Append your security token to your password. Format: YourPassword123YourSecurityToken"
+            )
+            
+            st.caption(
+                "💡 **Security Token Required:** For OAuth password flow, you must append your security token to your password. "
+                "Get your token: Profile → Settings → Reset My Security Token"
             )
             
             # Store configuration
