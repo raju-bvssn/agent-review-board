@@ -86,13 +86,13 @@ Be specific about what improved and what didn't. Focus on {focus_areas}."""
                 - role_description: Description of this reviewer's role
                 - focus_areas: What this reviewer should focus on
                 - temperature: LLM temperature (default: 0.5)
-                - max_tokens: Maximum tokens (default: 1500)
+                - max_tokens: Maximum tokens (default: 5000)
         """
         super().__init__(llm_provider, role=role, **kwargs)
         self.role_description = kwargs.get('role_description', 'professional reviewer')
         self.focus_areas = kwargs.get('focus_areas', 'quality and accuracy')
         self.temperature = kwargs.get('temperature', 0.5)
-        self.max_tokens = kwargs.get('max_tokens', 1500)
+        self.max_tokens = kwargs.get('max_tokens', 5000)  # Increased from 1500 to 5000 for Gemini 2.5 thinking tokens compatibility
     
     def review(self, content: str, iteration: int, previous_feedback: str = None) -> Feedback:
         """Review content and provide feedback.
